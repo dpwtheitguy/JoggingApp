@@ -46,6 +46,15 @@ On first GUI launch, complete any welcome/setup screens using the existing SDK a
 
 ## Emulator and physical devices
 
+**Pop!_OS host incident, October 30, 2026:** the user reported missing mouse
+pointing and desktop instability following visible emulator use on COSMIC.
+The emulator warned about GPU driver compatibility; the root cause has not
+been established. Emulator launching is suspended on this laptop, including
+headless launching, until an explicit compatibility investigation is requested.
+The commands below are historical reference, not the current default workflow.
+Use analysis, unit/widget tests and builds; prefer a connected physical phone
+for device testing. See AGENTS.md for persistent host constraints.
+
 The `RunProgram_API_36` AVD uses a Pixel 7 device profile and the API 36 Google APIs x86_64 image. Start through Studio's Device Manager or:
 
 ```bash
