@@ -29,4 +29,15 @@ class CoachDatabaseTest {
         assertEquals(0,db.state().getJSONArray("history").length());assertEquals(0,db.state().getJSONArray("programs").getJSONObject(0).getInt("cursor"))
     }
 
+    @Test fun modifiedWorkoutRequiresExplicitConfirmationToAdvance(){
+        val r=attempt().put("skippedMs",20000).put("skips",JSONArray().put(JSONObject().put("intervalIndex",0).put("skippedMs",20000)))
+        db.finish(r,"modified",10000)
+        assertEquals(0,db.state().getJSONArray("programs").getJSONObject(0).getInt("cursor"))
+        assertEquals(10000L,db.state().getJSONArray("history").getJSONObject(0).getLong("elapsedMs"))
+        db.acceptModified("a");db.acceptModified("a")
+        assertEquals(1,db.state().getJSONArray("programs").getJSONObject(0).getInt("cursor"))
+        assertEquals("modified_confirmed",db.state().getJSONArray("history").getJSONObject(0).getString("status"))
+        assertEquals(20000L,db.state().getJSONArray("history").getJSONObject(0).getLong("skippedMs"))
+    }
+
 }

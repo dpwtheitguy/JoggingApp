@@ -29,6 +29,7 @@ for key, text in {
     'run': 'Start running.', 'walk': 'Stop running. Start walking.',
     'halfway': "You’re halfway there.", 'minute': 'One minute left in this workout.',
     'cooldown': 'Begin your five-minute cooldown.', 'complete': 'Workout complete.',
+    'modified': 'Workout finished. Some intervals were skipped.',
 }.items():
     buffers.clear()
     data = text.encode('utf-8')

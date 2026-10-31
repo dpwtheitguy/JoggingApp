@@ -124,4 +124,15 @@ class WorkoutServiceTest {
         } finally {manager.abandonAudioFocusRequest(request)}
     }
 
+    @Test fun skippingTheLastIntervalRecordsModifiedWithoutAutomaticProgress(){
+        start(seconds=60,voice=false);SystemClock.sleep(200)
+        instrumentation.runOnMainSync{WorkoutService.current!!.skipInterval()}
+        waitFor{WorkoutService.current==null}
+        val r=db.read("runtime")!!
+        assertEquals("modified",r.getString("status"));assertTrue(r.getLong("elapsedMs")<5000)
+        assertTrue(r.getLong("skippedMs")>55000)
+        assertEquals(0,db.state().getJSONArray("programs").getJSONObject(0).getInt("cursor"))
+        assertEquals(1,db.state().getJSONArray("history").getJSONObject(0).getJSONArray("skips").length())
+    }
+
 }

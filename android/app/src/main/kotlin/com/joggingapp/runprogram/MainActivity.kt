@@ -23,7 +23,7 @@ class MainActivity : FlutterActivity() {
                     }
                     "newProgram" -> {
                         val runtime = db.read("runtime")
-                        require(runtime == null || runtime.optString("status") in setOf("completed", "stopped")) { "End the current workout before changing programs." }
+                        require(runtime == null || runtime.optString("status") in setOf("completed", "stopped", "modified", "modified_confirmed")) { "End the current workout before changing programs." }
                         WorkoutService.current?.dismissFinished()
                         require(args.getJSONArray("workouts").length() > 0)
                         val state = db.state(); state.getJSONArray("programs").put(args)
@@ -32,7 +32,7 @@ class MainActivity : FlutterActivity() {
                     "settings" -> { val state = db.state(); state.put("settings", args); db.write("state", state); WorkoutService.current?.applySettings(); result.success(null) }
                     "pauseTraining", "repeatWeek" -> {
                         val runtime = db.read("runtime")
-                        require(runtime == null || runtime.optString("status") in setOf("completed", "stopped"))
+                        require(runtime == null || runtime.optString("status") in setOf("completed", "stopped", "modified", "modified_confirmed"))
                         val state = db.state(); val programs = state.getJSONArray("programs")
                         val p = programs.getJSONObject(programs.length() - 1)
                         if (call.method == "pauseTraining") p.put("paused", args.getBoolean("paused"))
@@ -45,7 +45,7 @@ class MainActivity : FlutterActivity() {
                     }
                     "start" -> {
                         val old = db.read("runtime")
-                        require(old == null || old.optString("status") in setOf("completed", "stopped")) { "A workout is already active." }
+                        require(old == null || old.optString("status") in setOf("completed", "stopped", "modified", "modified_confirmed")) { "A workout is already active." }
                         val steps = args.getJSONObject("workout").getJSONArray("intervals")
                         require(steps.length() in 1..200)
                         var total = 0L
@@ -55,6 +55,8 @@ class MainActivity : FlutterActivity() {
                         db.write("runtime", args)
                         launchService(); result.success(null)
                     }
+                    "skip" -> { val service = WorkoutService.current ?: error("Resume the interrupted workout before skipping."); service.skipInterval(); result.success(null) }
+                    "acceptModified" -> { db.acceptModified(args.getString("attemptId")); result.success(null) }
                     "pause" -> { WorkoutService.current?.pause(); result.success(null) }
                     "resume" -> {
                         val data = db.read("runtime") ?: error("No interrupted workout to resume")
@@ -76,7 +78,7 @@ class MainActivity : FlutterActivity() {
                     }
                     "dismiss" -> {
                         val r = db.read("runtime")
-                        require(r == null || r.getString("status") in setOf("completed", "stopped"))
+                        require(r == null || r.getString("status") in setOf("completed", "stopped", "modified", "modified_confirmed"))
                         WorkoutService.current?.dismissFinished()
                         db.write("runtime", null); result.success(null)
                     }

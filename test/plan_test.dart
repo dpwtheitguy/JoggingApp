@@ -81,7 +81,11 @@ void main() {
   });
   test('extensions consolidate rather than compress the beginner block', () {
     final p = PlanGenerator.generate(const PlanRequest(weeks: 12));
-    expect(p.workouts.first['intervals'], p.workouts[6]['intervals']);
+    expect(p.workouts.length, 36);
+    expect(
+      p.workouts[27]['intervals'],
+      isNot(equals(p.workouts.first['intervals'])),
+    );
     expect(
       p.workouts.last['intervals'],
       PlanGenerator.generate(const PlanRequest()).workouts.last['intervals'],
@@ -126,4 +130,27 @@ void main() {
       }
     }
   });
+  test(
+    '60-week 5K distributes gentler interval options across the timeline',
+    () {
+      final p = PlanGenerator.generate(const PlanRequest(weeks: 60));
+      expect(p.workouts.length, 180);
+      expect(
+        p.workouts.first['intervals'],
+        isNot(equals(p.workouts[90]['intervals'])),
+      );
+      expect(
+        p.workouts.last['intervals'],
+        PlanGenerator.generate(const PlanRequest()).workouts.last['intervals'],
+      );
+      expect(
+        p.workouts.any((w) {
+          final i = w['intervals'] as List;
+          return i[1]['seconds'] == 60 && i[2]['seconds'] == 180;
+        }),
+        isTrue,
+      );
+      expect(PlanGenerator.concern(const PlanRequest(weeks: 104)), isNull);
+    },
+  );
 }

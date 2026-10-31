@@ -31,6 +31,11 @@ void main() {
                 Map<String, dynamic>.from(call.arguments as Map),
               );
               return null;
+            case 'skip':
+              runtime?['intervalIndex'] = 1;
+              runtime?['remainingMs'] = 60000;
+              runtime?['skippedMs'] = 300000;
+              return null;
             case 'settings':
               state['settings'] = call.arguments;
               return null;
@@ -56,8 +61,7 @@ void main() {
   testWidgets('defaults initialize and start with two actions', (tester) async {
     await tester.pumpWidget(RunProgramApp(store: store));
     await tester.pumpAndSettle();
-    expect(find.text('INITIALIZE PROGRAM'), findsOneWidget);
-    await tester.ensureVisible(find.text('INITIALIZE PROGRAM'));
+    await tester.scrollUntilVisible(find.text('INITIALIZE PROGRAM'), 250);
     await tester.tap(find.text('INITIALIZE PROGRAM'));
     await tester.pumpAndSettle();
     expect(find.text('Start Workout'), findsOneWidget);
@@ -98,6 +102,71 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('INITIALIZE PROGRAM'), 300);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('week view shows all three days and the written prescription', (
+    tester,
+  ) async {
+    (state['programs'] as List).add(
+      PlanGenerator.generate(const PlanRequest(weeks: 60)).toJson('long-plan'),
+    );
+    await tester.pumpWidget(RunProgramApp(store: store));
+    await tester.pumpAndSettle();
+    expect(find.text('Week 1 · Day 1'), findsOneWidget);
+    await tester.tap(find.text('Program'));
+    await tester.pumpAndSettle();
+    expect(find.text('Week 1 of 60'), findsOneWidget);
+    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.text('Day 2'), findsOneWidget);
+    expect(find.text('Day 3'), findsOneWidget);
+    expect(
+      find.text('Run 30 seconds, then walk 3 minutes; repeat 6 times.'),
+      findsNWidgets(3),
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('player exposes skip and a complete written workout', (
+    tester,
+  ) async {
+    (state['programs'] as List).add(
+      PlanGenerator.generate(const PlanRequest()).toJson('test'),
+    );
+    await tester.pumpWidget(RunProgramApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Workout'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Skip Interval'));
+    await tester.tap(find.text('Skip Interval'));
+    await tester.pumpAndSettle();
+    expect(runtime?['intervalIndex'], 1);
+    await tester.scrollUntilVisible(find.text('RUN'), -250);
+    expect(find.text('RUN'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Run 1 minute, then walk 1 minute 30 seconds; repeat 8 times.'),
+      250,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('custom timeline entry initializes a 60-week program', (
+    tester,
+  ) async {
+    await tester.pumpWidget(RunProgramApp(store: store));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Enter another number of weeks'),
+      200,
+    );
+    await tester.tap(find.text('Enter another number of weeks'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), '60');
+    await tester.tap(find.text('Use timeline'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('INITIALIZE PROGRAM'), 250);
+    await tester.tap(find.text('INITIALIZE PROGRAM'));
+    await tester.pumpAndSettle();
+    expect((state['programs'] as List).last['weeks'], 60);
+    expect(((state['programs'] as List).last['workouts'] as List).length, 180);
     await tester.pumpWidget(const SizedBox());
   });
 }

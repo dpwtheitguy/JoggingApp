@@ -5,6 +5,9 @@ An offline-first Android running coach with a dark terminal-inspired interface. 
 ## Functional development MVP
 
 - Default 5K setup in two actions through workout start; returning users start from Home in one action.
+- Flexible timelines including 60-week 5K plans, custom week entry, and a gentler 21-stage run/walk ladder for longer beginner programs.
+- Week-by-week Day 1 / Day 2 / Day 3 views and full written prescriptions (run, walk, repeats, warm-up, cooldown, total).
+- Skip Interval with honest skipped-time history and explicit progression confirmation for modified workouts.
 - Goal/ability/timeline selection, with prerequisite checks and conservative redirects for longer-distance goals.
 - Structured walk/run, easy, long, recovery, and taper sessions.
 - Native Android foreground-service timer, monotonic elapsed time, pause/resume, confirmed early stop, and conservative interrupted-process recovery.

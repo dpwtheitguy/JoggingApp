@@ -23,6 +23,32 @@ class CoachDatabase(context: Context, name: String = "coach.db") : SQLiteOpenHel
         return runtime
     }
     fun state() = read("state") ?: JSONObject().put("programs", JSONArray()).put("history", JSONArray()).put("settings", JSONObject())
+    fun acceptModified(attemptId: String) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val state = state()
+            val history = state.getJSONArray("history")
+            val record = (0 until history.length()).map { history.getJSONObject(it) }.firstOrNull { it.getString("id") == attemptId } ?: error("Attempt not found")
+            if (record.getString("status") == "modified") {
+                val runtime = read("runtime") ?: error("Workout result not found")
+                require(runtime.getString("attemptId") == attemptId)
+                val programs = state.getJSONArray("programs")
+                for (i in 0 until programs.length()) {
+                    val p = programs.getJSONObject(i)
+                    if (p.getString("id") == record.getString("programId")) {
+                        val replay = p.getJSONArray("replay")
+                        val updated = ProgressPolicy.complete(ProgressPolicy.Cursor(p.getInt("cursor"), (0 until replay.length()).map { replay.getInt(it) }), runtime.getInt("index"), record.getString("mode"))
+                        p.put("cursor", updated.next).put("replay", JSONArray(updated.replay))
+                    }
+                }
+                record.put("status", "modified_confirmed")
+                runtime.put("status", "modified_confirmed")
+                write("state", state); write("runtime", runtime)
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
     fun finish(runtime: JSONObject, status: String, elapsed: Long) {
         val db = writableDatabase
         db.beginTransaction()
@@ -34,7 +60,7 @@ class CoachDatabase(context: Context, name: String = "coach.db") : SQLiteOpenHel
                 history.put(JSONObject().put("id", id).put("programId", runtime.getString("programId"))
                     .put("workout", runtime.getJSONObject("workout")).put("status", status)
                     .put("elapsedMs", elapsed).put("date", java.time.Instant.now().toString())
-                    .put("mode", runtime.optString("mode", "normal")))
+                    .put("mode", runtime.optString("mode", "normal")).put("skippedMs", runtime.optLong("skippedMs")).put("skips", runtime.optJSONArray("skips") ?: JSONArray()))
                 if (status == "completed") {
                     val programs = state.getJSONArray("programs")
                     for (i in 0 until programs.length()) {

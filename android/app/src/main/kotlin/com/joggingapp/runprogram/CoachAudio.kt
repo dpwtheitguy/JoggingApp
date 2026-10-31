@@ -40,6 +40,7 @@ class CoachAudio(private val context: Context, private val interrupted: () -> Un
             "cooldown" -> R.raw.cue_cooldown
             "resume_cooldown" -> R.raw.cue_resume_cooldown
             "complete" -> R.raw.cue_complete
+            "modified" -> R.raw.cue_modified
             else -> 0
         }
         if (id == 0) { stop(); interrupted(); return }

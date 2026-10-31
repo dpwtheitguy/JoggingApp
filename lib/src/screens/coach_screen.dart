@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 
 import '../data/coach_store.dart';
 import '../training/plan.dart';
+import '../training/workout_description.dart';
 import 'digital_rain.dart';
+import 'timeline_dialog.dart';
 
 class CoachScreen extends StatefulWidget {
   const CoachScreen({super.key, this.store});
@@ -211,6 +213,13 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
     });
   }
 
+  Widget workoutBreakdown(Map workout) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (final line in workoutInstructions(workout))
+        Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(line)),
+    ],
+  );
   Widget dashboard(Map<String, dynamic> p) {
     final all = workouts(p);
     final index = nextIndex(p);
@@ -238,8 +247,10 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
               Text('${p['weeks']} weeks · 3 runs per week'),
               const SizedBox(height: 8),
               if (w != null) ...[
-                Text('Week ${w['week']} · Workout ${w['session']}'),
+                Text('Week ${w['week']} · Day ${w['session']}'),
                 Text('${w['role']} · ${durationLabel(w['seconds'] as int)}'),
+                const SizedBox(height: 8),
+                Text(workoutSummary(w)),
               ],
               if ((p['replay'] as List).isNotEmpty)
                 const Text('Repeating week · history preserved'),
@@ -273,6 +284,29 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
           () => start(p, all.length - 1, mode: 'repeat'),
         ),
       ],
+      if (w != null) ...[
+        title('Week ${w['week']} · Day ${w['session']} workout'),
+        workoutBreakdown(w),
+      ],
+      if (w != null)
+        ExpansionTile(
+          title: Text('Week ${w['week']} · All three days'),
+          children: [
+            for (final day in all.where(
+              (item) => (item as Map)['week'] == w['week'],
+            ))
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    title('Day ${(day as Map)['session']}'),
+                    workoutBreakdown(day),
+                  ],
+                ),
+              ),
+          ],
+        ),
       OutlinedButton(
         onPressed: () async {
           if (await confirm(
@@ -294,55 +328,55 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
     ]);
   }
 
-  Widget programView(Map<String, dynamic> p) => page([
-    title('Training modules'),
-    const Text(
-      'Run and walk as prescribed; distance is not measured. Every session includes a five-minute warm-up and cooldown.',
-    ),
-    for (var i = 0; i < workouts(p).length; i++)
-      Card(
-        child: ListTile(
-          title: Text(
-            'Week ${(workouts(p)[i] as Map)['week']} · Session ${(workouts(p)[i] as Map)['session']}',
-          ),
-          subtitle: Text(
-            '${(workouts(p)[i] as Map)['role']} · ${durationLabel((workouts(p)[i] as Map)['seconds'] as int)}${i < (p['cursor'] as int) ? ' · Complete' : ''}',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            builder: (c) => SafeArea(
-              child: FractionallySizedBox(
-                heightFactor: .8,
-                child: page([
-                  title('Workout sequence'),
-                  for (final step
-                      in (workouts(p)[i] as Map)['intervals'] as List)
+  Widget programView(Map<String, dynamic> p) {
+    final all = workouts(p);
+    final currentWeek = (nextIndex(p).clamp(0, all.length - 1) ~/ 3);
+    return ListView.builder(
+      padding: const EdgeInsets.all(24),
+      itemCount: (all.length / 3).ceil(),
+      itemBuilder: (context, week) => Card(
+        child: ExpansionTile(
+          key: PageStorageKey('${p['id']}-week-$week'),
+          initiallyExpanded: week == currentWeek,
+          title: Text('Week ${week + 1} of ${p['weeks']}'),
+          children: [
+            for (var day = 0; day < 3 && week * 3 + day < all.length; day++)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    title('Day ${day + 1}'),
                     Text(
-                      '${activityLabel((step as Map)['activity'] as String)} · ${durationLabel(step['seconds'] as int)}',
+                      '${(all[week * 3 + day] as Map)['role']} · ${durationLabel((all[week * 3 + day] as Map)['seconds'] as int)}${week * 3 + day < (p['cursor'] as int) ? ' · Complete' : ''}',
                     ),
-                  if (i < (p['cursor'] as int) || i == nextIndex(p))
-                    primary(
-                      i < (p['cursor'] as int)
-                          ? 'Repeat Workout'
-                          : 'Start Workout',
-                      () {
-                        Navigator.pop(c);
-                        start(
+                    const SizedBox(height: 8),
+                    workoutBreakdown(all[week * 3 + day] as Map),
+                    if (week * 3 + day <= (p['cursor'] as int) ||
+                        week * 3 + day == nextIndex(p))
+                      OutlinedButton(
+                        onPressed: () => start(
                           p,
-                          i,
-                          mode: i < (p['cursor'] as int) ? 'repeat' : null,
-                        );
-                      },
-                    ),
-                ]),
+                          week * 3 + day,
+                          mode: week * 3 + day < (p['cursor'] as int)
+                              ? 'repeat'
+                              : null,
+                        ),
+                        child: Text(
+                          week * 3 + day < (p['cursor'] as int)
+                              ? 'Repeat Day ${day + 1}'
+                              : 'Start Day ${day + 1}',
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ),
+          ],
         ),
       ),
-  ]);
+    );
+  }
+
   String historyProgramLabel(String id) {
     final programs = store.state['programs'] as List;
     for (final p in programs) {
@@ -353,6 +387,13 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
     return 'Previous training program';
   }
 
+  String resultLabel(String status) => switch (status) {
+    'completed' => 'Completed',
+    'stopped' => 'Stopped early',
+    'modified' => 'Finished with skips',
+    'modified_confirmed' => 'Finished with skips · progression confirmed',
+    _ => status,
+  };
   Widget history() => page([
     title('Workout history'),
     const Text(
@@ -364,14 +405,14 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
       Card(
         child: ListTile(
           title: Text(
-            'Week ${(h['workout'] as Map)['week']} · Session ${(h['workout'] as Map)['session']} · ${h['status']}',
+            'Week ${(h['workout'] as Map)['week']} · Day ${(h['workout'] as Map)['session']} · ${resultLabel(h['status'] as String)}',
           ),
           subtitle: Text(
             '${DateTime.parse(h['date'] as String).toLocal().toString().split('.').first}\n${durationLabel((h['elapsedMs'] as num).toInt() ~/ 1000)} active · ${switch (h['mode']) {
               'week' => 'Repeated week',
               'repeat' => 'Repeated workout',
               _ => 'Scheduled workout',
-            }}\n${h['reportedKm'] == null ? '' : '${h['reportedKm']} km · self-reported\n'}${historyProgramLabel(h['programId'] as String)}',
+            }}\n${(h['skippedMs'] as num? ?? 0) > 0 ? '${writtenDuration(((h['skippedMs'] as num).toInt() + 999) ~/ 1000)} skipped · not credited as exercise\n' : ''}${h['reportedKm'] == null ? '' : '${h['reportedKm']} km · self-reported\n'}${historyProgramLabel(h['programId'] as String)}',
           ),
         ),
       ),
@@ -429,7 +470,13 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
 
   Widget player(Map<String, dynamic> r) {
     final status = r['status'] as String;
-    final terminal = status == 'completed' || status == 'stopped';
+    final terminal = const {
+      'completed',
+      'stopped',
+      'modified',
+      'modified_confirmed',
+    }.contains(status);
+    final modified = status == 'modified' || status == 'modified_confirmed';
     final w = Map<String, dynamic>.from(r['workout'] as Map);
     final steps = w['intervals'] as List;
     final elapsed = (r['elapsedMs'] as num? ?? 0).toInt();
@@ -438,13 +485,15 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
         (r['remainingMs'] as num? ??
                 ((steps.first as Map)['seconds'] as int) * 1000)
             .toInt();
+    final skipped = (r['skippedMs'] as num? ?? 0).toInt();
+    final position = elapsed + skipped;
     if (status == 'interrupted') {
       var cumulative = 0;
       for (var i = 0; i < steps.length; i++) {
         cumulative += ((steps[i] as Map)['seconds'] as int) * 1000;
-        if (elapsed < cumulative) {
+        if (position < cumulative) {
           index = i;
-          remaining = cumulative - elapsed;
+          remaining = cumulative - position;
           break;
         }
       }
@@ -454,13 +503,15 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
     return page([
       Text(
         terminal
-            ? 'SEQUENCE ${status.toUpperCase()}'
+            ? 'SEQUENCE · ${resultLabel(status).toUpperCase()}'
             : 'TRAINING SEQUENCE · ${status.toUpperCase()}',
         style: Theme.of(context).textTheme.labelLarge,
       ),
       Text(
         terminal
-            ? status == 'completed'
+            ? modified
+                  ? 'Workout finished with skips'
+                  : status == 'completed'
                   ? 'Workout complete'
                   : 'Workout stopped early'
             : activity,
@@ -485,15 +536,38 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
               ? 'NEXT: ${activityLabel((steps[index + 1] as Map)['activity'] as String)} · ${durationLabel((steps[index + 1] as Map)['seconds'] as int)}'
               : 'NEXT: Workout complete',
         ),
-      LinearProgressIndicator(value: (elapsed / total).clamp(0, 1)),
+      LinearProgressIndicator(value: (position / total).clamp(0, 1)),
       Text(
-        '${(elapsed * 100 / total).floor()}% · ${durationLabel(elapsed ~/ 1000)} / ${durationLabel(total ~/ 1000)}',
+        'Sequence ${(position * 100 / total).floor()}% · ${durationLabel(elapsed ~/ 1000)} active / ${durationLabel(total ~/ 1000)} prescribed',
       ),
+      if (skipped > 0)
+        Text(
+          '${writtenDuration((skipped + 999) ~/ 1000)} skipped. Skipped time is not recorded as exercise.',
+        ),
       if (r['message'] != null) Text(r['message'] as String),
       if (!terminal) ...[
         primary(
           status == 'running' ? 'Pause' : 'Resume',
           () => store.command(status == 'running' ? 'pause' : 'resume'),
+        ),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.skip_next),
+          label: const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text('Skip Interval'),
+          ),
+          onPressed: store.busy || status == 'interrupted'
+              ? null
+              : () async {
+                  if (index == steps.length - 1 &&
+                      !await confirm(
+                        'Skip the final interval?',
+                        'Finish with skipped time recorded. You can choose whether to advance this day afterward.',
+                      )) {
+                    return;
+                  }
+                  await store.command('skip');
+                },
         ),
         OutlinedButton(
           onPressed: () async {
@@ -522,7 +596,9 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
         ),
       ] else ...[
         Text(
-          status == 'completed'
+          modified
+              ? 'Skipped intervals are saved in history. This day will not advance unless you explicitly choose to continue.'
+              : status == 'completed'
               ? 'Scheduled workout completed. No distance was measured.'
               : 'Your attempt is saved. Repeat this session whenever you are ready.',
         ),
@@ -563,6 +639,19 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
             child: const Text('Save reported distance'),
           ),
         ],
+        if (status == 'modified')
+          primary('Continue to next day', () async {
+            if (await confirm(
+              'Continue after a modified workout?',
+              'Some prescribed time was skipped. Count this day toward your program and keep the skip details in history?',
+            )) {
+              if (await store.command('acceptModified', {
+                'attemptId': r['attemptId'],
+              })) {
+                await store.command('dismiss');
+              }
+            }
+          }),
         primary('Return to Home', () {
           distanceController.clear();
           store.command('dismiss');
@@ -576,6 +665,8 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
           child: const Text('Repeat Workout'),
         ),
       ],
+      title('Week ${w['week']} · Day ${w['session']} · Full workout'),
+      workoutBreakdown(w),
     ]);
   }
 }
@@ -669,7 +760,27 @@ class _SetupScreenState extends State<SetupScreen> {
             labelText: 'Training timeline (weeks)',
           ),
           items:
-              {8, 10, 12, 15, 16, 18, 20, 24, 25, 28, 30, 32, 36, weeks}
+              {
+                    8,
+                    10,
+                    12,
+                    15,
+                    16,
+                    18,
+                    20,
+                    24,
+                    25,
+                    28,
+                    30,
+                    32,
+                    36,
+                    40,
+                    52,
+                    60,
+                    78,
+                    104,
+                    weeks,
+                  }
                   .toList()
                   .map(
                     (n) => DropdownMenuItem(value: n, child: Text('$n weeks')),
@@ -677,6 +788,16 @@ class _SetupScreenState extends State<SetupScreen> {
                   .toList()
                 ..sort((a, b) => a.value!.compareTo(b.value!)),
           onChanged: (n) => setState(() => weeks = n!),
+        ),
+        TextButton(
+          onPressed: () async {
+            final chosen = await showDialog<int>(
+              context: context,
+              builder: (_) => TimelineDialog(weeks: weeks),
+            );
+            if (chosen != null && mounted) setState(() => weeks = chosen);
+          },
+          child: const Text('Enter another number of weeks'),
         ),
         if (long) ...[
           const SizedBox(height: 16),
@@ -729,6 +850,14 @@ class _SetupScreenState extends State<SetupScreen> {
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
           child: const Text('INITIALIZE PROGRAM'),
         ),
+        if (issue == null)
+          ...workoutInstructions(PlanGenerator.generate(request).workouts.first)
+              .map(
+                (line) => Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(line),
+                ),
+              ),
         const SizedBox(height: 16),
         const Text(
           'Walk comfortably for 30 minutes before starting. Take rest days between beginner sessions. Stop if unwell or in pain. Timed workouts do not measure race distance.',

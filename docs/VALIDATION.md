@@ -49,3 +49,11 @@ Voice files are bundled synthetic English speech generated locally by scripts/ge
 See [release gates](RELEASE.md): independent curriculum review, Pixel/Samsung physical devices, prolonged battery/background tests, full headset/call/music/podcast matrix, all large-text/TalkBack flows, production signing and upgrade tests, accurate store/privacy declarations, and acceptance of the specialUse foreground-service declaration. No store publication occurred.
 
 Known implementation limits: no GPS or distance measurement; no automatic race-completion claim; local-only history can be lost on uninstall/reset/device loss; no individualized injury/return-to-running assessment; no iOS runtime yet. All supported timelines are development templates rather than validated training prescriptions.
+
+## v0.3 update: flexible timelines, written days, and interval skipping
+
+- 60-week beginner 5K generation is tested with 180 scheduled workouts and a gentler 21-stage interval ladder; 104-week requests also pass eligibility checks. The former distance-specific upper caps are removed; custom entry supports up to 999 weeks.
+- Full written run/walk, repeat, warm-up/cooldown and total-time descriptions are derived from stored definitions. Program view groups Week X into Day 1 / Day 2 / Day 3; dashboard and player show the actual prescription.
+- Skip Interval tracks sequence position separately from active exercise time, persists skip details, supports paused skipping, and restores skipped-time metadata after interruption. Modified completion does not silently advance the cursor; explicit confirmation is idempotent.
+- Executed checks for this update: 15 Dart/widget tests, 18 native unit tests and 15 emulator tests; 48 total passing. Static analysis is clean. Debug APK, development-signed release APK and AAB builds pass. The release asset check confirms all 10 bundled clips are retained, including the new modified-workout announcement.
+- Actual emulator UI smoke: entered a custom 60-week plan, inspected weekly Day 1/2/3 instructions, skipped the warm-up into running, skipped through completion, and explicitly continued to Day 2. SQLite confirmed one advancement with 106,166 ms active and 1,753,834 ms skipped (exactly the prescribed 31 minutes combined). Screenshots: dashboard-60-weeks.png, week-days.png, skip-interval.png and finished-with-skips.png.

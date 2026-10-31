@@ -34,7 +34,7 @@ class WorkoutService : Service() {
             val data = db.read("runtime") ?: error("No workout to start")
             payload = data
             val steps = data.getJSONObject("workout").getJSONArray("intervals")
-            engine = IntervalEngine((0 until steps.length()).map { val s = steps.getJSONObject(it); IntervalEngine.Step(s.getString("activity"), s.getInt("seconds")) }, data.optLong("elapsedMs"))
+            engine = IntervalEngine((0 until steps.length()).map { val s = steps.getJSONObject(it); IntervalEngine.Step(s.getString("activity"), s.getInt("seconds")) }, data.optLong("elapsedMs"), skipped = data.optLong("skippedMs"))
             val notification = notification()
             if (Build.VERSION.SDK_INT >= 34) startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE) else startForeground(1, notification)
             resume()
@@ -45,7 +45,7 @@ class WorkoutService : Service() {
         return START_NOT_STICKY
     }
     fun dismissFinished() {
-        if (engine?.status !in setOf("completed", "stopped")) return
+        if (engine?.status !in setOf("completed", "stopped", "modified", "modified_confirmed")) return
         handler.removeCallbacksAndMessages(null)
         audio.finished = null; audio.stop(); releaseWake()
         engine = null; payload = null
@@ -62,8 +62,8 @@ class WorkoutService : Service() {
         val data = payload ?: return null
         val e = engine ?: return data
         val now = SystemClock.elapsedRealtime()
-        data.put("elapsedMs", e.elapsed(now)).put("status", e.status).put("intervalIndex", e.indexAt(e.elapsed(now)))
-            .put("remainingMs", e.remaining(now)).put("totalMs", e.total)
+        data.put("elapsedMs", e.elapsed(now)).put("status", if (e.status == "completed" && e.skippedMs > 0) "modified" else e.status).put("intervalIndex", e.indexAt(e.position(now)))
+            .put("remainingMs", e.remaining(now)).put("totalMs", e.total).put("positionMs", e.position(now)).put("skippedMs", e.skippedMs)
         return JSONObject(data.toString())
     }
     private fun checkpoint() { snapshot()?.let { db.write("runtime", it) }; lastCheckpoint = SystemClock.elapsedRealtime() }
@@ -85,9 +85,32 @@ class WorkoutService : Service() {
         val spokenCue = if (e.committed > 0 && cue in setOf("warmup", "cooldown")) "resume_$cue" else cue
         checkpoint(); audio.say(listOf(spokenCue)); handler.removeCallbacks(tick); handler.post(tick)
     }
+    fun skipInterval() {
+        val e = engine ?: error("Resume the workout before skipping an interval.")
+        val now = SystemClock.elapsedRealtime()
+        val index = e.indexAt(e.position(now))
+        val rest = e.remaining(now)
+        val events = payload!!.optJSONArray("skips") ?: org.json.JSONArray()
+        events.put(JSONObject().put("intervalIndex", index).put("skippedMs", rest))
+        payload!!.put("skips", events)
+        audio.stop()
+        val cues = e.skip(now)
+        checkpoint()
+        if (e.status == "completed") { finishSequence(cues); return }
+        else if (e.status == "running") audio.say(cues)
+        notifyPlayer()
+    }
+    private fun finishSequence(cues: List<String>) {
+        val e = engine ?: return
+        releaseWake()
+        snapshot()?.let { db.finish(it, if (e.skippedMs > 0) "modified" else "completed", e.elapsed(SystemClock.elapsedRealtime())) }
+        audio.finished = { stopForeground(STOP_FOREGROUND_REMOVE); stopSelf() }
+        audio.stop(); audio.say(cues)
+        handler.postDelayed({ stopForeground(STOP_FOREGROUND_REMOVE); stopSelf() }, 15000)
+    }
     fun stopWorkout() {
         val e = engine ?: return
-        if (e.status in setOf("completed", "stopped")) return
+        if (e.status in setOf("completed", "stopped", "modified", "modified_confirmed")) return
         e.stop(SystemClock.elapsedRealtime()); audio.stop(); releaseWake()
         payload?.let { db.finish(it, "stopped", e.elapsed(SystemClock.elapsedRealtime())) }
         stopForeground(STOP_FOREGROUND_REMOVE); stopSelf()
@@ -101,12 +124,7 @@ class WorkoutService : Service() {
             audio.enabled = prefs.optBoolean("voice", true); audio.duck = prefs.optBoolean("duck", true)
             val cues = e.advance(now, prefs.optBoolean("halfway", true), prefs.optBoolean("warning", true))
             if (e.status == "completed") {
-                releaseWake()
-                payload?.let { db.finish(it, "completed", e.total) }
-                audio.finished = { stopForeground(STOP_FOREGROUND_REMOVE); stopSelf() }
-                audio.stop(); audio.say(cues)
-                // Avoid holding a foreground service indefinitely if playback never finishes.
-                handler.postDelayed({ stopForeground(STOP_FOREGROUND_REMOVE); stopSelf() }, 15000)
+                finishSequence(cues)
                 return
             }
             if (cues.isNotEmpty()) {

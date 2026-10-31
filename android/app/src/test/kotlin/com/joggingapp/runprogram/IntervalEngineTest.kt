@@ -41,4 +41,26 @@ class IntervalEngineTest {
     }
     @Test fun stopDoesNotComplete() { val e=engine();e.resume(0);e.stop(1000);assertEquals("stopped",e.status);assertTrue(e.advance(900000).isEmpty()) }
     @Test(expected=IllegalArgumentException::class) fun rejectsZeroIntervals() {IntervalEngine(listOf(IntervalEngine.Step("run",0)))}
+    @Test fun skipMovesToNextIntervalWithoutCreditingSkippedExercise(){
+        val e=engine();e.resume(0)
+        assertEquals(listOf("run"),e.skip(10000))
+        assertEquals(10000L,e.elapsed(10000));assertEquals(300000L,e.position(10000))
+        assertEquals(290000L,e.skippedMs);assertEquals(60000L,e.remaining(10000))
+        assertEquals(11000L,e.elapsed(11000));assertTrue(e.advance(11000).isEmpty())
+    }
+    @Test fun skipWhilePausedKeepsTheNextIntervalPaused(){
+        val e=engine();e.resume(0);e.pause(10000);e.skip(100000)
+        assertEquals("paused",e.status);assertEquals(10000L,e.elapsed(200000));assertEquals(60000L,e.remaining(200000))
+        e.resume(200000);assertEquals(59000L,e.remaining(201000))
+    }
+    @Test fun skippedWorkoutsFinishWithModifiedCueAndActualElapsedOnly(){
+        val e=IntervalEngine(listOf(IntervalEngine.Step("run",60)));e.resume(0)
+        assertEquals(listOf("modified"),e.skip(5000));assertEquals("completed",e.status)
+        assertEquals(5000L,e.elapsed(100000));assertEquals(55000L,e.skippedMs)
+    }
+    @Test fun skipMetadataRestoresWithoutInventingElapsedTime(){
+        val e=IntervalEngine(listOf(IntervalEngine.Step("warmup",300),IntervalEngine.Step("run",60)),10000,"interrupted",290000)
+        assertEquals(10000L,e.elapsed(999999));assertEquals(60000L,e.remaining(999999));e.resume(1000000);assertEquals(59000L,e.remaining(1001000))
+    }
+
 }
