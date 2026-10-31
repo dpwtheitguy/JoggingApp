@@ -1,6 +1,6 @@
 # Development environment
 
-Installed October 30, 2026 on Pop!_OS 24.04 LTS, Linux x86_64. The user subsequently authorized the first Android app foundation. Outstanding curriculum and background-service decisions in DESIGN.md still require validation.
+Installed October 30, 2026 on Pop!_OS 24.04 LTS, Linux x86_64. Current functional MVP commands and limits are in README.md and docs/VALIDATION.md; the setup/foundation records below are historical. The user subsequently authorized the first Android app foundation. Outstanding curriculum and background-service decisions in DESIGN.md still require validation.
 
 ## Installed tools
 
@@ -161,7 +161,7 @@ Disposable sample: /tmp/runprogram-toolchain-smoke, project name toolchain_smoke
 
 The initial build emitted Java native-access and SDK XML-version warnings but completed successfully. Treat these as recorded tool-version warnings; investigate if later upgrades turn them into failures. No additional system packages were necessary for the verified build and headless emulator path. A visible Studio GUI session, emulator host audio, physical USB connection, release signing, and release APK/AAB builds remain unverified. The headless test emulator was shut down after verification; the AVD remains available.
 
-No running-coach functionality, locked-screen audio, or timer recovery has been implemented or tested. iOS builds require macOS/Xcode and are not configured on this Linux host.
+The initial foundation checks above did not include running-coach functionality, locked-screen audio, or timer recovery; current results are documented in docs/VALIDATION.md. iOS builds require macOS/Xcode and are not configured on this Linux host.
 
 ## RUN//PROGRAM foundation verification
 

@@ -20,7 +20,15 @@ abstract final class AppTheme {
       surface: panel,
       onSurface: primary,
     ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: active,
+      linearTrackColor: secondary.withValues(alpha: .18),
+      linearMinHeight: 6,
+    ),
     textTheme: const TextTheme(
+      bodyMedium: TextStyle(fontSize: 16, height: 1.4, color: secondary),
+      titleMedium: TextStyle(fontSize: 18, color: primary),
+      headlineSmall: TextStyle(fontSize: 24, color: primary),
       labelLarge: TextStyle(
         fontFamily: 'monospace',
         fontSize: 14,

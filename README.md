@@ -1,34 +1,65 @@
 # RUN//PROGRAM
 
-An offline-first Android running coach with an original terminal-inspired cyberpunk interface. Planned goals: 5K, 10K, half marathon, and marathon, subject to appropriate readiness checks and curriculum review.
+An offline-first Android running coach with a dark terminal-inspired interface. Application ID: `com.joggingapp.runprogram`. Minimum Android: 8.0 / API 26; target SDK: 36.
 
-Current status: the first Android app foundation. The app displays a dark/green Hello World screen under the RUN//PROGRAM name. Android application ID: `com.joggingapp.runprogram`. Minimum Android: 8.0 (API 26).
+## Functional development MVP
 
-Read the [initial design package](DESIGN.md) for reference research, architecture, training model, screen flows, Android reliability plan, roadmap, and review decisions. The app foundation is authorized; curriculum and background-service decisions still need validation before those features ship.
+- Default 5K setup in two actions through workout start; returning users start from Home in one action.
+- Goal/ability/timeline selection, with prerequisite checks and conservative redirects for longer-distance goals.
+- Structured walk/run, easy, long, recovery, and taper sessions.
+- Native Android foreground-service timer, monotonic elapsed time, pause/resume, confirmed early stop, and conservative interrupted-process recovery.
+- Bundled offline voice coaching, transient audio focus/ducking requests, optional vibration, and a mute control.
+- SQLite progress, completion history, repeated workouts/weeks, program pause/restart, and optional self-reported distance.
+- Central dark/green theme and optional low-intensity rain, disabled during workouts and reduced-motion mode.
 
-From this directory:
+No account, backend, GPS, analytics, ads, subscription, music player, or wearable integration. No third-party runtime packages beyond Flutter/Android platform libraries.
+
+**Development release:** original curricula are not independently validated. Half/marathon prerequisites and templates require qualified review before production release. Finishing a timed workout or program does not prove completion of a measured race distance. Read [curriculum assumptions](docs/CURRICULUM.md) and [release checklist](docs/RELEASE.md).
+
+## Develop and test
+
+Installed versions, shell/IDE setup, and device instructions: [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ```bash
 source scripts/dev-env.sh
 flutter pub get
 flutter analyze
 flutter test
+./android/gradlew -p android testDebugUnitTest
 flutter build apk --debug
 emulator -avd RunProgram_API_36
-# In another terminal, with the environment sourced:
+# In another configured terminal:
 flutter run -d emulator-5554
 ```
 
-During `flutter run`, press `r` for hot reload, `R` for hot restart, or `d` to detach and leave the app running. Android Studio opens this directory as a Flutter project; open android/ separately when working on native Kotlin code.
+Run the full checks with `bash scripts/check.sh --device` when an emulator/device is connected; omit `--device` for Dart/native unit tests and a debug build only. The emulator tests exercise real SQLite, foreground execution, locked-screen timing, audio focus, bundled playback, and completion/progression. Use a disposable emulator/profile: persistence tests use a separate database and service tests restore saved documents, but instrumentation installs may reset test app data. End active workouts before running them.
 
-The debug APK is `build/app/outputs/flutter-apk/app-debug.apk`. To sideload it:
+During `flutter run`: `r` hot reloads, `R` restarts, `d` detaches. Open the repository root in Android Studio for Flutter, or android/ for native Kotlin work.
+
+## Install
+
+Debug APK: `build/app/outputs/flutter-apk/app-debug.apk`.
 
 ```bash
 adb -s DEVICE_SERIAL install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
 
-Project layout: lib/main.dart starts the app; lib/src/app.dart owns application setup; lib/src/theme/ owns theme tokens; lib/src/screens/ owns screens; android/ contains the native Kotlin host; test/ contains widget tests. No third-party runtime packages are included. Commit pubspec.lock and the Gradle wrapper to preserve the dependency baseline.
+For local release-mode testing only:
 
-Known limits: this is a Hello World foundation, with no training generator, timer, coaching, history, or persistence yet. Release signing is not configured; the template release variant currently uses a development key. INTERNET permission exists only in debug/profile manifests for Flutter debugging. Native launch colors mirror the Flutter theme. Digital rain and other effects are deferred.
+```bash
+RUNPROGRAM_DEVELOPMENT_SIGNING=1 flutter build apk --release
+RUNPROGRAM_DEVELOPMENT_SIGNING=1 flutter build appbundle --release
+```
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for installed tool versions, Android Studio setup, shell environment, emulator/device usage, build/test commands, APK installation, signing boundaries, and actual verification results. No cloud account, GPS, analytics, advertising, or subscription is planned.
+These explicit test builds use the development certificate and **must not be submitted to Play**. Production signing requires an ignored android/key.properties file referencing a protected external keystore; see [release procedure](docs/RELEASE.md). Release APK and Play AAB are different artifacts. No app-store publication or account creation is performed by these commands.
+
+## Code map
+
+- lib/src/training/: pure schedule generation and serialized curriculum definitions.
+- lib/src/data/: native bridge and UI state snapshots; the UI is not the timer authority.
+- lib/src/screens/: setup, dashboard, program, history, settings, and player.
+- lib/src/theme/: centralized visual tokens.
+- android/app/src/main/kotlin/: interval engine, foreground service, audio, SQLite, progression, and bridge.
+- test/: schedule and widget tests; Android unit/device tests live under android/app/src/.
+
+See [verification record](docs/VALIDATION.md) for actual results and remaining device/release checks. The original [design](DESIGN.md) records research and proposed architecture; deviations implemented for the prototype are documented in the curriculum and release notes.
