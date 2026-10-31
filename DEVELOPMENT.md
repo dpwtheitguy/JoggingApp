@@ -186,3 +186,63 @@ The actual project at /home/dwilson/Documents/JoggingApp was subsequently scaffo
 - [First-screen screenshot](docs/screenshots/hello-world.png) captured and visually inspected; no clipping in the emulator's default viewport.
 
 The emulator was left open for the user to inspect after verification. These checks establish the app foundation, not training or background-coaching reliability. The repository is initialized on main, with the user-supplied Git identity configured locally for the initial foundation commit.
+
+## Current Pop!_OS UI and sound workflow
+
+Standalone emulator windows reproduced desktop instability after the updates.
+The working short-test route is a headless emulator plus **scrcpy on native
+Wayland**, with Android playback audio captured as PCM. See
+[host investigation](docs/POP-OS-EMULATOR-RESEARCH.md) for evidence and limits.
+Do not start the standalone emulator window from the historical commands above.
+These launchers are user-invoked compatibility sessions, never routine checks.
+
+From the project root:
+
+```bash
+# Build the current debug APK and open the workout app with sound.
+bash scripts/dev-android.sh app
+
+# Build and open the debug audio lab: actual coaching clips and melody.
+bash scripts/dev-android.sh audio
+```
+
+Sessions default to 120 seconds and shut down the emulator when the scrcpy
+window closes. An explicitly requested longer compatibility session can set
+`RUNPROGRAM_TEST_SECONDS=900` for 15 minutes (accepted range: 30–1200 seconds).
+Long sessions have not yet been validated. The launcher never starts from CI
+or normal tests, refuses duplicate sessions and does not fall back to X11.
+A timeout does not guarantee recovery if the desktop freezes.
+
+The audio lab starts with the melody off. Press **Play all coaching cues** to
+hear all ten actual bundled clips through CoachAudio; individual cue buttons
+allow replay. **Open workout app** switches to the real app. Audio stops when
+the lab is backgrounded or closed. The lab is compiled only into debug builds.
+It does not write workout progress. The app's media volume controls loudness;
+use the laptop's selected output for speakers/headphones.
+
+Persistent logs are under `docs/host-diagnostics/scrcpy-TIMESTAMP/` (gitignored):
+`android.log`, `scrcpy.log`, `desktop.log`, `kernel.log`, `resources.log`,
+`launch.log`, `test.log` and a final screenshot. `RunProgramAudio` Logcat entries
+identify cue start/completion, audio focus changes and playback errors. These
+logs are local and are not uploaded. Kernel log access may depend on journal
+permissions. Closing scrcpy or Ctrl+C in the launcher terminal cleans up its
+process groups. A second terminal can request shutdown with:
+
+```bash
+source scripts/dev-env.sh
+adb -s emulator-5580 emu kill
+```
+
+Scrcpy 5.0.1 is installed only in `.local-tools/scrcpy-linux-x86_64-v5.0.1/`.
+For another workstation, download the matching official x86_64 archive from
+[the release](https://github.com/Genymobile/scrcpy/releases/tag/v5.0.1), verify
+SHA-256 `9f969d30cc574816077edecda65719c1c70b0aee1df1ba5fa00779ac07b8fd6e`,
+and extract under `.local-tools/`. The launcher intentionally fails if that
+pinned binary or the APK is missing. It uses the existing SDK adb.
+
+The user confirmed the real coaching clips audible via scrcpy. Their prototype
+voice quality was rejected for production; see docs/VOICE-DIRECTION.md.
+Audio acceptance still needs music/podcast ducking,
+headset/call interruptions, screen-lock and physical-device verification.
+Continuous melody was confirmed audible with a stable desktop; it does not
+by itself establish those behaviors.

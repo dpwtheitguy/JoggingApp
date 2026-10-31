@@ -82,3 +82,10 @@ Added `--audio` to scripts/test-scrcpy-compat.sh: native Wayland video plus requ
 Added DebugAudioActivity under src/debug only. It synthesizes and loops an original eight-note melody through AudioTrack using media attributes, with Pause/Close controls and lifecycle cleanup. User explicitly confirmed **music audible and desktop stable** during this test. This verifies the end-to-end continuous Android-to-scrcpy-to-host audio path, not headset/call/ducking behavior or individual coaching cues. The screen is excluded from release builds. No microphone capture is used.
 
 To reproduce only when authorized: `RUNPROGRAM_TEST_ACTIVITY=.DebugAudioActivity RUNPROGRAM_TEST_APK=build/app/outputs/flutter-apk/app-debug.apk bash scripts/test-scrcpy-compat.sh --audio`. The script stops the session automatically. The earlier --host-audio path remains diagnostic only and failed here.
+
+
+## Real coaching cue acceptance and launcher improvements
+
+User confirmed actual voice cues audible and desktop stable in the audio lab. Logcat recorded the real CoachAudio sequence (warmup, resume_warmup, run, walk, halfway, minute, cooldown, resume_cooldown, complete, modified). Added local RunProgramAudio cue start/completion/focus/error logs, individual replay buttons and Play all coaching cues. Lab layout scrolls and accounts for the bottom system inset.
+
+New user-invoked scripts/dev-android.sh builds the current debug APK and opens either app or audio lab through the pinned native-Wayland scrcpy setup. Default duration is 120 seconds; explicit sessions can select 30–1200 seconds. The harness preserves logs, checks duplicate sessions, propagates scrcpy failure status and stops helper process groups. No standalone emulator window or desktop configuration change is involved.

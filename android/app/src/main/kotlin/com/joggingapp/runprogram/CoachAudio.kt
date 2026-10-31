@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.util.Log
 
 class CoachAudio(private val context: Context, private val interrupted: () -> Unit) {
     private val manager = context.getSystemService(AudioManager::class.java)
@@ -24,6 +25,7 @@ class CoachAudio(private val context: Context, private val interrupted: () -> Un
         val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
         val request = AudioFocusRequest.Builder(if (duck) AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK else AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(attributes).setOnAudioFocusChangeListener { change ->
+                Log.d("RunProgramAudio", "focus changed: $change")
                 if (change == AudioManager.AUDIOFOCUS_LOSS || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) { stop(); interrupted() }
             }.build()
         if (focus == null) {
@@ -51,10 +53,11 @@ class CoachAudio(private val context: Context, private val interrupted: () -> Un
             player = p
             p.setAudioAttributes(attributes)
             context.resources.openRawResourceFd(id).use { p.setDataSource(it.fileDescriptor, it.startOffset, it.length) }
-            p.setOnCompletionListener { player = null; it.release(); playNext() }
-            p.setOnErrorListener { _, _, _ -> stop(); interrupted(); true }
+            p.setOnCompletionListener { Log.d("RunProgramAudio", "cue finished: $cue"); player = null; it.release(); playNext() }
+            p.setOnErrorListener { _, what, extra -> Log.e("RunProgramAudio", "cue failed: $cue what=$what extra=$extra"); stop(); interrupted(); true }
             p.prepare(); p.start(); lastPlayedCue = cue
-        } catch (_: Exception) { stop(); interrupted() }
+            Log.d("RunProgramAudio", "cue started: $cue")
+        } catch (error: Exception) { Log.e("RunProgramAudio", "cue exception: $cue", error); stop(); interrupted() }
     }
     private fun releaseFocus() { focus?.let { manager.abandonAudioFocusRequest(it) }; focus = null }
     fun stop() { queue.clear(); player?.release(); player = null; releaseFocus() }

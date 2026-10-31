@@ -57,3 +57,22 @@ Known implementation limits: no GPS or distance measurement; no automatic race-c
 - Skip Interval tracks sequence position separately from active exercise time, persists skip details, supports paused skipping, and restores skipped-time metadata after interruption. Modified completion does not silently advance the cursor; explicit confirmation is idempotent.
 - Executed checks for this update: 15 Dart/widget tests, 18 native unit tests and 15 emulator tests; 48 total passing. Static analysis is clean. Debug APK, development-signed release APK and AAB builds pass. The release asset check confirms all 10 bundled clips are retained, including the new modified-workout announcement.
 - Actual emulator UI smoke: entered a custom 60-week plan, inspected weekly Day 1/2/3 instructions, skipped the warm-up into running, skipped through completion, and explicitly continued to Day 2. SQLite confirmed one advancement with 106,166 ms active and 1,753,834 ms skipped (exactly the prescribed 31 minutes combined). Screenshots: dashboard-60-weeks.png, week-days.png, skip-interval.png and finished-with-skips.png.
+
+## Audio lab and repeatable local testing
+
+Added a debug-only audio lab for all ten real coaching clips, individual replay,
+continuous melody and a link to the workout app. The user confirmed actual voice
+cues audible and desktop stable via native-Wayland scrcpy. Audible transport is
+accepted; the eSpeak voice quality was explicitly rejected for production (see
+VOICE-DIRECTION.md). Latest checks: clean Flutter analysis, 15 Dart/widget tests,
+18 native unit tests and successful debug APK builds. No device instrumentation
+suite was rerun for these tooling changes. Native audio logs identify cue
+start/completion, focus changes and failures. User-invoked development launcher
+builds the current APK, captures durable logs and cleans up helper groups.
+
+Actual workout UI smoke through scrcpy also passed: Start Workout, Pause, Resume,
+Skip Interval, End Workout and Confirm. SQLite evidence retained locally shows
+the latest attempt stopped and the existing program cursor still 1 (Day 2).
+The test emulator was deliberately shut down afterward; scrcpy reports device
+disconnection for that explicit shutdown. This was a short control smoke test,
+not a completed 15–20 minute stability soak.
