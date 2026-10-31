@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <application>
+        <activity android:name=".DebugAudioActivity" android:exported="true" android:label="Continuous sound test"/>
+    </application>
 </manifest>

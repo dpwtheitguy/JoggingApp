@@ -19,7 +19,9 @@ class CoachAudio(private val context: Context, private val interrupted: () -> Un
     private fun playNext() {
         if (queue.isEmpty()) { releaseFocus(); finished?.invoke(); return }
         val cue = queue.removeFirst()
-        val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
+        // Workout coaching is spoken media, not turn-by-turn navigation. Media
+        // usage also permits Android playback capture for screen/audio testing.
+        val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
         val request = AudioFocusRequest.Builder(if (duck) AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK else AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(attributes).setOnAudioFocusChangeListener { change ->
                 if (change == AudioManager.AUDIOFOCUS_LOSS || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) { stop(); interrupted() }

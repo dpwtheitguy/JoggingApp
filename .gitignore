@@ -64,3 +64,9 @@ app.*.map.json
 
 # Kotlin build cache
 android/.kotlin/
+
+# Local host diagnostics may contain machine/session details.
+docs/host-diagnostics/
+
+# Project-local development tools
+.local-tools/
