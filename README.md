@@ -13,6 +13,7 @@ An offline-first Android running coach with a dark terminal-inspired interface. 
 - Native Android foreground-service timer, monotonic elapsed time, pause/resume, confirmed early stop, and conservative interrupted-process recovery.
 - Bundled offline voice coaching, transient audio focus/ducking requests, optional vibration, and a mute control.
 - SQLite progress, completion history, repeated workouts/weeks, program pause/restart, and optional self-reported distance.
+- Tap any history entry to review its original full prescription, actual exercise time and individual skipped intervals, including previous programs.
 - Central dark/green theme and optional low-intensity rain, disabled during workouts and reduced-motion mode.
 
 No account, backend, GPS, analytics, ads, subscription, music player, or wearable integration. No third-party runtime packages beyond Flutter/Android platform libraries.
@@ -30,12 +31,15 @@ flutter analyze
 flutter test
 ./android/gradlew -p android testDebugUnitTest
 flutter build apk --debug
-emulator -avd RunProgram_API_36
-# In another configured terminal:
-flutter run -d emulator-5554
+# Explicitly requested local UI/audio session on Pop!_OS:
+bash scripts/dev-android.sh app
+# Debug audio lab:
+bash scripts/dev-android.sh audio
 ```
 
 Run the full checks with `bash scripts/check.sh --device` when an emulator/device is connected; omit `--device` for Dart/native unit tests and a debug build only. The emulator tests exercise real SQLite, foreground execution, locked-screen timing, audio focus, bundled playback, and completion/progression. Use a disposable emulator/profile: persistence tests use a separate database and service tests restore saved documents, but instrumentation installs may reset test app data. End active workouts before running them.
+
+Standalone emulator windows caused severe COSMIC desktop instability on this laptop. The documented local UI path uses a headless emulator and native-Wayland scrcpy. See [host constraints](AGENTS.md) before device testing.
 
 During `flutter run`: `r` hot reloads, `R` restarts, `d` detaches. Open the repository root in Android Studio for Flutter, or android/ for native Kotlin work.
 

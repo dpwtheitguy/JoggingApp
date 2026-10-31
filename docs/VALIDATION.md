@@ -76,3 +76,22 @@ the latest attempt stopped and the existing program cursor still 1 (Day 2).
 The test emulator was deliberately shut down afterward; scrcpy reports device
 disconnection for that explicit shutdown. This was a short control smoke test,
 not a completed 15–20 minute stability soak.
+
+## v0.4: review saved workouts
+
+History entries now open a read-only detail screen containing the original saved
+prescription, status, local date/time, program, normal/repeat context, actual
+exercise time, prescribed time, optional self-reported distance and individual
+skipped intervals. Archived definitions are not regenerated. Modified workouts
+clearly distinguish explicit progression confirmation from unaccepted skips;
+stopped attempts are not described as completed. History rows are built lazily
+for longer timelines and retained repeats. Dashboard now shows remaining
+scheduled workouts as well as completed count.
+
+Executed checks: clean Flutter analysis; 19 Dart/widget tests (including archived
+prescriptions, actual/skipped time, legacy optional fields, 3,000 retained
+attempts and 320×568 at 200% text); 18 native unit tests. Debug APK and explicitly
+development-signed optimized APK/AAB builds pass for 0.4.0+4. All ten prototype
+voice clips remain byte-for-byte in the optimized APK. No emulator was launched
+and device instrumentation was not rerun for this UI increment. Voice quality
+remains a deferred production task.

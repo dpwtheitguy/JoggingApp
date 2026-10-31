@@ -7,6 +7,7 @@ import '../data/coach_store.dart';
 import '../training/plan.dart';
 import '../training/workout_description.dart';
 import 'digital_rain.dart';
+import 'history_screen.dart';
 import 'timeline_dialog.dart';
 
 class CoachScreen extends StatefulWidget {
@@ -258,7 +259,7 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
               LinearProgressIndicator(value: (p['cursor'] as int) / all.length),
               const SizedBox(height: 8),
               Text(
-                '${p['cursor']} / ${all.length} scheduled workouts complete',
+                '${p['cursor']} / ${all.length} scheduled workouts complete · ${all.length - (p['cursor'] as int)} remaining',
               ),
             ],
           ),
@@ -377,46 +378,12 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
     );
   }
 
-  String historyProgramLabel(String id) {
-    final programs = store.state['programs'] as List;
-    for (final p in programs) {
-      if ((p as Map)['id'] == id) {
-        return '${RunningGoal.values.byName(p['goal'] as String).label} · ${p['weeks']}-week program';
-      }
-    }
-    return 'Previous training program';
-  }
-
-  String resultLabel(String status) => switch (status) {
-    'completed' => 'Completed',
-    'stopped' => 'Stopped early',
-    'modified' => 'Finished with skips',
-    'modified_confirmed' => 'Finished with skips · progression confirmed',
-    _ => status,
-  };
-  Widget history() => page([
-    title('Workout history'),
-    const Text(
-      'Every attempt stays here, including repeats and workouts stopped early.',
-    ),
-    if (store.history.isEmpty)
-      const Text('No attempts yet. Start your first sequence from Home.'),
-    for (final h in store.history.reversed)
-      Card(
-        child: ListTile(
-          title: Text(
-            'Week ${(h['workout'] as Map)['week']} · Day ${(h['workout'] as Map)['session']} · ${resultLabel(h['status'] as String)}',
-          ),
-          subtitle: Text(
-            '${DateTime.parse(h['date'] as String).toLocal().toString().split('.').first}\n${durationLabel((h['elapsedMs'] as num).toInt() ~/ 1000)} active · ${switch (h['mode']) {
-              'week' => 'Repeated week',
-              'repeat' => 'Repeated workout',
-              _ => 'Scheduled workout',
-            }}\n${(h['skippedMs'] as num? ?? 0) > 0 ? '${writtenDuration(((h['skippedMs'] as num).toInt() + 999) ~/ 1000)} skipped · not credited as exercise\n' : ''}${h['reportedKm'] == null ? '' : '${h['reportedKm']} km · self-reported\n'}${historyProgramLabel(h['programId'] as String)}',
-          ),
-        ),
-      ),
-  ]);
+  Widget history() => WorkoutHistory(
+    attempts: store.history,
+    programs: (store.state['programs'] as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList(),
+  );
   Widget settings() {
     final prefs = store.settings;
     return page([
@@ -503,7 +470,7 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
     return page([
       Text(
         terminal
-            ? 'SEQUENCE · ${resultLabel(status).toUpperCase()}'
+            ? 'SEQUENCE · ${attemptResultLabel(status).toUpperCase()}'
             : 'TRAINING SEQUENCE · ${status.toUpperCase()}',
         style: Theme.of(context).textTheme.labelLarge,
       ),

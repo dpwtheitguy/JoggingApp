@@ -28,7 +28,7 @@ flutter build appbundle --release
 
 Sideloading artifact: build/app/outputs/flutter-apk/app-release.apk. Play upload artifact: build/app/outputs/bundle/release/app-release.aab. Verify APK signer/certificate with the installed build-tools apksigner, and verify bundle signing with jarsigner. Match the intended certificate fingerprint; successful compilation alone does not prove correct production signing. Test clean installation and upgrades using the same certificate. Debug and production packages with the same application ID but different certificates cannot upgrade each other.
 
-Version is controlled by pubspec.yaml (currently 0.3.0+3). Increment the build number for every uploaded Play build; never reuse it. Keep lockfiles and Gradle wrapper in version control.
+Version is controlled by pubspec.yaml (currently 0.4.0+4). Increment the build number for every uploaded Play build; never reuse it. Keep lockfiles and Gradle wrapper in version control.
 
 ## Permissions and execution
 
