@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Native launch colors mirror lib/src/theme/app_theme.dart. -->
+    <color name="runprogram_background">#050805</color>
+    <color name="runprogram_primary">#00FF41</color>
+</resources>

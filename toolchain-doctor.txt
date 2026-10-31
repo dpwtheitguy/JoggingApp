@@ -1,0 +1,27 @@
+[✓] Flutter (Channel stable, 3.47.9, on Pop!_OS 24.04 LTS 7.0.11-76070011-generic, locale en_US.UTF-8) [26ms]
+    • Flutter version 3.47.9 on channel stable at /home/dwilson/Development/flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision c197ca5199 (35 hours ago), 2026-10-29 10:10:20 -0400
+    • Engine revision 89c39edfdf
+    • Dart version 3.13.7
+    • DevTools version 2.60.0
+    • Feature flags: no-enable-web, no-enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, enable-record-use, enable-swift-package-manager, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[✓] Android toolchain - develop for Android devices (Android SDK version 36.0.0) [817ms]
+    • Android SDK at /home/dwilson/Android/Sdk
+    • Emulator version 37.2.13.0 (build_id 16740729) (CL:N/A)
+    • Platform android-36, build-tools 36.0.0
+    • ANDROID_HOME = /home/dwilson/Android/Sdk
+    • Java binary at: /home/dwilson/Development/android-studio/jbr/bin/java
+      This JDK is specified in your Flutter configuration.
+      To change the current JDK, run: `flutter config --jdk-dir="path/to/jdk"`.
+    • Java version OpenJDK Runtime Environment (build 25.0.4+-16339643-b508.27)
+    • All Android licenses accepted.
+
+[✓] Connected device (1 available) [47ms]
+    • sdk gphone64 x86 64 (mobile) • emulator-5554 • android-x64 • Android 16 (API 36) (emulator)
+
+[✓] Network resources [318ms]
+    • All expected network resources are available.
+
+• No issues found!
