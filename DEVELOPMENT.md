@@ -246,3 +246,45 @@ Audio acceptance still needs music/podcast ducking,
 headset/call interruptions, screen-lock and physical-device verification.
 Continuous melody was confirmed audible with a stable desktop; it does not
 by itself establish those behaviors.
+
+## Prepared runtime regression and soak checks
+
+Use only an explicitly authorized disposable device/emulator session. No physical
+Android device was attached at the latest audit. Emulator authorization remains
+subject to AGENTS.md. A read-only AVD session can be requested with
+`RUNPROGRAM_TEST_READ_ONLY=1` on the scrcpy harness; this option has been prepared
+but not yet exercised in the latest test run. The launcher requests 2560 MB guest
+RAM because the API 36 image raised earlier 1536 MB requests to that minimum.
+Total host process memory also includes graphics and emulator overhead.
+
+With the selected test session already running, execute:
+
+```bash
+# Current short native suite, on the explicitly selected serial:
+bash scripts/run-runtime-tests.sh emulator-5580
+
+# The same suite followed by the opt-in fifteen-minute locked-screen soak:
+bash scripts/run-runtime-tests.sh emulator-5580 900
+```
+
+The runner builds/installs matching debug app and instrumentation APKs. Tests
+write temporary runtime/program fixtures and restore their saved documents;
+installation/tooling can affect app data, so never run against valuable history.
+The long test is omitted from the short suite and requires its duration argument.
+Use a sufficiently long, explicitly authorized launcher session (for example
+1200 seconds) for a 900-second soak plus boot and regression time. Test progress
+is logged as RunProgramSoak in Logcat. The runner treats instrumentation failure
+as failure even if adb itself exits zero, and preserves results under
+`docs/host-diagnostics/runtime-TIMESTAMP/`. It does not start an emulator.
+
+The acceptance ledger is [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). A privacy notice
+draft is [docs/PRIVACY.md](docs/PRIVACY.md); publisher/contact/store steps remain
+outside the completed local implementation.
+
+
+For a disposable API 33+ device with an initialized idle program, the explicit UI
+recovery check is `python3 scripts/check-device-ui.py DEVICE_SERIAL OUTPUT_DIR`.
+It revokes notification permission, runs/ends short attempts, force-stops/reopens
+the app and records local SQLite/screenshots. It never launches a virtual device;
+do not run it against a personal active workout. Source scripts/dev-env.sh first.
+The acceptance ledger and final counts are in docs/ACCEPTANCE.md and docs/VALIDATION.md.

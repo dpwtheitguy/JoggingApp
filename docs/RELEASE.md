@@ -21,14 +21,14 @@ The Gradle production signing configuration consumes this file. Never reuse the 
 
 ```bash
 source scripts/dev-env.sh
-bash scripts/check.sh --device
+bash scripts/check.sh --device DEVICE_SERIAL
 flutter build apk --release
 flutter build appbundle --release
 ```
 
 Sideloading artifact: build/app/outputs/flutter-apk/app-release.apk. Play upload artifact: build/app/outputs/bundle/release/app-release.aab. Verify APK signer/certificate with the installed build-tools apksigner, and verify bundle signing with jarsigner. Match the intended certificate fingerprint; successful compilation alone does not prove correct production signing. Test clean installation and upgrades using the same certificate. Debug and production packages with the same application ID but different certificates cannot upgrade each other.
 
-Version is controlled by pubspec.yaml (currently 0.4.0+4). Increment the build number for every uploaded Play build; never reuse it. Keep lockfiles and Gradle wrapper in version control.
+Version is controlled by pubspec.yaml (currently 0.5.0+5). Increment the build number for every uploaded Play build; never reuse it. Keep lockfiles and Gradle wrapper in version control.
 
 ## Permissions and execution
 
@@ -40,7 +40,7 @@ Version is controlled by pubspec.yaml (currently 0.4.0+4). Increment the build n
 
 References: [Android foreground service types](https://developer.android.com/develop/background-work/services/fgs/service-types), [audio focus](https://developer.android.com/media/optimize/audio-focus), [Play target API requirements](https://support.google.com/googleplay/android-developer/answer/11926878).
 
-Target API 36 was the required new-app baseline checked during design. Recheck current Play policy immediately before submitting. Do not acquire unrelated sensor permissions just to qualify for the health service type, or play silent media to evade service restrictions.
+Target API 36 is the required new-app baseline rechecked against the official Play policy on October 30, 2026. Recheck current Play policy immediately before submitting. Do not acquire unrelated sensor permissions just to qualify for the health service type, or play silent media to evade service restrictions.
 
 ## Privacy disclosure draft
 
@@ -53,6 +53,8 @@ Before publication, provide a publisher/contact identity, host an accurate priva
 - Independent running-coach review of all original curricula, especially half/marathon entry readiness and weekly volume. Do not claim scientifically validated training or guaranteed race completion.
 - Pixel and Samsung physical-device tests, including screen lock, battery saver, several-hour sessions, Bluetooth disconnect, calls, music and podcasts, denied notifications, low storage, process termination and reboot.
 - Audible cue clarity, exact threshold latency, restoration of other-app audio after cues, and battery impact. Emulator MediaPlayer-start tests do not establish audible quality or compatibility with every app/headset.
-- TalkBack traversal, reduced motion, large text on player/history/settings, contrast, and all initial-setup paths ≤10 interactions. Typical/default setup and returning start are tested; every customized path still needs observed UX validation.
+- TalkBack traversal, reduced motion, large text on player/history/settings, contrast, and all initial-setup paths ≤10 interactions. Every eligible recommended goal/ability setup is widget-tested within ten interactions; default and 999-week flows were exercised on the emulator. Observed TalkBack and physical-device UX remain.
 - Production signing, release installation/upgrade, final artifact/certificate verification, current target policy, store disclosures and testing-track requirements.
 - No publication without explicit user approval.
+
+Development acceptance and remaining gates are tracked in [ACCEPTANCE.md](ACCEPTANCE.md); executed evidence is in [VALIDATION.md](VALIDATION.md). The privacy disclosure draft is [PRIVACY.md](PRIVACY.md).

@@ -2,7 +2,7 @@
 
 An offline-first Android running coach with a dark terminal-inspired interface. Application ID: `com.joggingapp.runprogram`. Minimum Android: 8.0 / API 26; target SDK: 36.
 
-## Functional development MVP
+## Functional development MVP · v0.5.0
 
 - Default 5K setup in two actions through workout start; returning users start from Home in one action.
 - Flexible timelines including 60-week 5K plans, custom week entry, and a gentler 21-stage run/walk ladder for longer beginner programs.
@@ -37,7 +37,7 @@ bash scripts/dev-android.sh app
 bash scripts/dev-android.sh audio
 ```
 
-Run the full checks with `bash scripts/check.sh --device` when an emulator/device is connected; omit `--device` for Dart/native unit tests and a debug build only. The emulator tests exercise real SQLite, foreground execution, locked-screen timing, audio focus, bundled playback, and completion/progression. Use a disposable emulator/profile: persistence tests use a separate database and service tests restore saved documents, but instrumentation installs may reset test app data. End active workouts before running them.
+Run the full checks with `bash scripts/check.sh --device DEVICE_SERIAL` when an emulator/device is connected; omit `--device` for Dart/native unit tests and a debug build only. Select a disposable test serial explicitly; the check script never starts an emulator. The device tests exercise real SQLite, foreground execution, locked-screen timing, audio focus, bundled playback, and completion/progression. Use a disposable emulator/profile: persistence tests use a separate database and service tests restore saved documents, but instrumentation installs may reset test app data. End active workouts before running them.
 
 Standalone emulator windows caused severe COSMIC desktop instability on this laptop. The documented local UI path uses a headless emulator and native-Wayland scrcpy. See [host constraints](AGENTS.md) before device testing.
 
@@ -69,4 +69,13 @@ These explicit test builds use the development certificate and **must not be sub
 - android/app/src/main/kotlin/: interval engine, foreground service, audio, SQLite, progression, and bridge.
 - test/: schedule and widget tests; Android unit/device tests live under android/app/src/.
 
+Acceptance status: [requirements ledger](docs/ACCEPTANCE.md). Privacy notice draft: [local data handling](docs/PRIVACY.md).
+
 See [verification record](docs/VALIDATION.md) for actual results and remaining device/release checks. The original [design](DESIGN.md) records research and proposed architecture; deviations implemented for the prototype are documented in the curriculum and release notes.
+
+
+Development acceptance: **94 passing tests**, clean static analysis, optimized
+APK/AAB builds, locked-screen soak and data-preserving development upgrade.
+See [acceptance ledger](docs/ACCEPTANCE.md) and [executed validation](docs/VALIDATION.md).
+Physical-device release validation, production signing/store approval and the
+agreed voice replacement remain separate release work.

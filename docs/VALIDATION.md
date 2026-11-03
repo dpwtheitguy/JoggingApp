@@ -20,7 +20,7 @@ Development MVP, tested on the API 36 Pixel 7-profile x86_64 emulator on this wo
 | Production-signing fail-safe | Unsigned/unconfigured release dry-run rejected as intended |
 | Release permission inspection | No INTERNET, GPS, microphone or sensor permission |
 
-Reproduce core checks with `bash scripts/check.sh --device`. Kotlin reports are generated under build/app/reports/tests/ and device reports under build/app/reports/androidTests/connected/. Build output/report paths are ignored, not source-controlled.
+Reproduce core checks with `bash scripts/check.sh --device DEVICE_SERIAL`. Kotlin reports are generated under build/app/reports/tests/ and device reports under build/app/reports/androidTests/connected/. Build output/report paths are ignored, not source-controlled.
 
 Schedule tests enumerate supported/rejected goal/ability/week combinations, consistent positive interval totals, complete beginner foundation, prerequisite rejection, timeline extensions, recovery/taper and supporting running volume. Widget tests cover the default two-action initialize/start, one-action returning start, early-stop confirmation, and setup layout at 320×568 with 200% text.
 
@@ -95,3 +95,109 @@ development-signed optimized APK/AAB builds pass for 0.4.0+4. All ten prototype
 voice clips remain byte-for-byte in the optimized APK. No emulator was launched
 and device instrumentation was not rerun for this UI increment. Voice quality
 remains a deferred production task.
+
+## v0.5 reliability audit
+
+Implemented runtime-only UI polling instead of reloading full plans/history every
+second, cached live service settings instead of decoding the entire program four
+times a second, and guarded stale polling responses after commands/backgrounding.
+Completion still reloads authoritative progress/history. Failed post-command
+snapshot reads no longer report UI success.
+
+Fixed skipped-position notification labels, interrupted-state persistence on
+service destruction, final-skip atomicity, exact-finish skip speech, duplicate
+completion protection, canonical native start validation, paused-program starts
+and repeated-week mode selection. Notification permission is requested once
+instead of on every workout after denial. Home/settings/player/result now use
+separate scroll identities: the large-text test found and fixed a real inherited
+scroll-offset bug that could open the player below the activity/countdown.
+
+Executed final offline checks: 41 Dart/widget tests and 29 native unit tests passed,
+including every eligible recommended goal/ability setup within ten interactions,
+999-week definitions/native bounds, paused/replay behavior, large-text player and
+settings, bridge polling races and failed snapshot handling. Analysis is clean.
+The fail-fast script output is retained locally in
+`docs/host-diagnostics/offline-checks-v0.5-final.log`; native results are under build/
+and the local native-check log. The additional Android tests compile; runtime
+results are recorded separately below, never inferred from compilation.
+
+Computed WCAG relative-luminance ratios for opaque central theme colors:
+primary text 14.74:1 on background / 13.55:1 on panel; secondary text 6.74:1 /
+6.19:1; active green 15.06:1 / 13.84:1; warning amber 10.55:1 / 9.70:1. This
+calculation is not a claim that every composited UI/TalkBack path was audited.
+
+First read-only native-Wayland runtime regression: 19/20 passed. The notification
+visibility test lacked notification permission in its fixture. The disposable
+session correctly had POST_NOTIFICATIONS denied; service/background/audio tests
+ran despite denial. Added an explicit permission grant to the visibility test,
+then reran the suite. Original failed-run log is retained locally rather than
+being overwritten. No standalone Qt emulator window was started.
+
+
+### Executed runtime and manual evidence
+
+The user authorized bounded compatibility sessions. Tests used API 36, a
+read-only headless SwiftShader emulator and native-Wayland scrcpy where a UI/audio
+window was needed. No standalone Qt window, host driver change or desktop restart
+was used. Raw logs, database snapshots and intermediate failed fixtures remain
+local and ignored under docs/host-diagnostics/.
+
+- Full native service/database suite: 22 tests passed in
+  runtime-20261030-213450/regression.log, including atomic rollback on storage
+  failure, stale/duplicate completion, interruption, skipped notification position,
+  live voice settings and real separate-UID media playback/focus restoration.
+- Opt-in locked-screen soak: one 900-second test passed in
+  runtime-20261030-210914/soak.log. The test sampled 899 times, observed elapsed
+  within the one-second sampling tolerance without accumulating drift, and
+  persisted exactly 900,000 ms, one history record and one advancement. Android
+  reported asleep during the run; guest connectivity was disabled during it.
+  This does not establish physical battery behavior or several-hour endurance.
+- Actual offline controls: start, pause, resume, skip and confirmed stop passed.
+  Notification denial still permitted workouts and did not prompt again on the
+  next start. Stopped attempts did not advance the cursor.
+- Real force-stop/reopen: exact 5,039 ms durable checkpoint recovered as interrupted,
+  stayed frozen while waiting, and saved that time on explicit stop. History-row
+  navigation opened the original written workout details successfully. Evidence:
+  scrcpy-20261102-194948/manual-checks.log and associated database snapshots.
+- Same-certificate upgrade: built committed v0.4.0+4 in an isolated temporary
+  source directory, installed it then installed v0.5.0+5 without clearing data.
+  Every stored database document compared equal after upgrade. Both certificates
+  matched the local Android development certificate; this is not a production-key
+  upgrade test.
+- Actual custom 999-week initialization created 2,997 workouts and retained old
+  history. The UI action and snapshot assertion completed in 4.4 seconds on this
+  emulator; this includes automation overhead, not a pure generator benchmark.
+
+Initial fixture failures were corrected and rerun: notification visibility needed
+an explicit permission grant; the separate test APK fixture initially relied on
+unpackaged Kotlin runtime and was rewritten in Java; starting an already-running
+activity from another app required a nonblocking start. The app was not declared
+passing from a partial instrumentation run. A reboot UI assertion initially saw
+the OS notification dialog covering the app; subsequent evidence is recorded below.
+
+Final optimized APK and AAB built with explicit development signing for 0.5.0+5.
+The release asset checker confirmed all ten voice clips byte-for-byte. Release
+manifest/certificate checks exclude debug/test activities and verify the five intended Android permissions plus AndroidX’s generated
+app-signature-only receiver permission; no release INTERNET/location/microphone permission. Production
+signing remains an external release gate. Voice quality remains explicitly deferred.
+
+
+Final rerun: **23 Android regressions passed** in
+runtime-20261102-200634/regression.log, including the added complete three-day
+week replay with immutable prior attempts. Together with the separate 900-second
+soak, 41 Flutter tests and 29 native unit tests, **94 tests passed**. The final
+routine script completed successfully with clean static analysis.
+
+Guest reboot recovery passed after dismissing the covering OS permission dialog:
+the exact **5,169 ms** checkpoint reopened as interrupted, no downtime was added,
+and explicit stop retained that time without advancing the new program. Evidence:
+scrcpy-20261102-200404/upgrade-check.log, pre/post-reboot database snapshots and
+reboot-stopped.db. The initial covered-screen assertion is retained in that log.
+
+Final release APK verification passed; the AAB reports `jar verified` with the
+expected local self-signed development certificate warnings. Both builds are local
+test artifacts, not production-signed store submissions. The signing guard rejects
+release tasks without production configuration or the explicit development opt-in.
+Every bounded emulator session was stopped; no emulator was intentionally left
+running. Host observations during these sessions do not prove the original COSMIC
+issue is fixed, so the AGENTS.md restriction remains in force.

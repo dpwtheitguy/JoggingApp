@@ -37,7 +37,7 @@ class IntervalEngine(val intervals: List<Step>, elapsed: Long = 0, initialStatus
         skippedMs += rest
         anchor = now
         observed = committed + skippedMs
-        if (observed >= total) { status = "completed"; return listOf("modified") }
+        if (observed >= total) { status = "completed"; return listOf(if (skippedMs > 0) "modified" else "complete") }
         return listOf(intervals[indexAt(observed)].activity)
     }
     fun advance(now: Long, halfway: Boolean = true, warning: Boolean = true): List<String> {

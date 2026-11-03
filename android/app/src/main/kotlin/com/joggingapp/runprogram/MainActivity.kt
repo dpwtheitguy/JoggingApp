@@ -21,6 +21,10 @@ class MainActivity : FlutterActivity() {
                         val runtime = WorkoutService.current?.snapshot() ?: db.recoverRuntime()
                         result.success(JSONObject().put("state", db.state()).put("runtime", runtime ?: JSONObject.NULL).toString())
                     }
+                    "runtimeSnapshot" -> {
+                        val runtime = WorkoutService.current?.snapshot() ?: db.recoverRuntime()
+                        result.success(runtime?.toString())
+                    }
                     "newProgram" -> {
                         val runtime = db.read("runtime")
                         require(runtime == null || runtime.optString("status") in setOf("completed", "stopped", "modified", "modified_confirmed")) { "End the current workout before changing programs." }
@@ -46,11 +50,22 @@ class MainActivity : FlutterActivity() {
                     "start" -> {
                         val old = db.read("runtime")
                         require(old == null || old.optString("status") in setOf("completed", "stopped", "modified", "modified_confirmed")) { "A workout is already active." }
+                        val programs = db.state().getJSONArray("programs")
+                        require(programs.length() > 0) { "Initialize a training program first." }
+                        val program = programs.getJSONObject(programs.length() - 1)
+                        require(program.getString("id") == args.getString("programId")) { "This is not the current training program." }
+                        val workouts = program.getJSONArray("workouts")
+                        val index = args.getInt("index")
+                        val replay = program.getJSONArray("replay")
+                        StartPolicy.validate(index, workouts.length(), program.getInt("cursor"),
+                            (0 until replay.length()).map { replay.getInt(it) }, args.optString("mode", "normal"), program.optBoolean("paused"))
+                        // The durable program owns the definition; do not trust a stale UI copy.
+                        args.put("workout", workouts.getJSONObject(index))
                         val steps = args.getJSONObject("workout").getJSONArray("intervals")
                         require(steps.length() in 1..200)
                         var total = 0L
                         for (i in 0 until steps.length()) { val s = steps.getJSONObject(i); require(s.getString("activity") in setOf("run", "walk", "warmup", "cooldown")); require(s.getInt("seconds") in 1..14400); total += s.getInt("seconds") }
-                        require(total <= 21600)
+                        require(total <= 21600 && args.getJSONObject("workout").getLong("seconds") == total) { "Saved workout duration is inconsistent." }
                         args.put("attemptId", java.util.UUID.randomUUID().toString()).put("elapsedMs", 0).put("status", "paused")
                         db.write("runtime", args)
                         launchService(); result.success(null)
@@ -66,7 +81,11 @@ class MainActivity : FlutterActivity() {
                     }
                     "end" -> {
                         if (WorkoutService.current != null) WorkoutService.current?.stopWorkout()
-                        else db.read("runtime")?.let { db.finish(it, "stopped", it.optLong("elapsedMs")) }
+                        else db.read("runtime")?.let {
+                            if (it.optString("status") !in setOf("completed", "stopped", "modified", "modified_confirmed")) {
+                                db.finish(it, "stopped", it.optLong("elapsedMs"))
+                            }
+                        }
                         result.success(null)
                     }
                     "reportedDistance" -> {
@@ -89,7 +108,13 @@ class MainActivity : FlutterActivity() {
         }
     }
     private fun launchService() {
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 20)
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            val permissions = getSharedPreferences("permission_prompts", MODE_PRIVATE)
+            if (!permissions.getBoolean("notifications_requested", false)) {
+                permissions.edit().putBoolean("notifications_requested", true).apply()
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 20)
+            }
+        }
         startForegroundService(Intent(this, WorkoutService::class.java))
     }
 }

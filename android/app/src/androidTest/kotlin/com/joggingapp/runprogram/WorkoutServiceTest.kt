@@ -135,4 +135,91 @@ class WorkoutServiceTest {
         assertEquals(1,db.state().getJSONArray("history").getJSONObject(0).getJSONArray("skips").length())
     }
 
+    @Test fun stoppingTheServiceRetainsAnInterruptedCheckpointWithoutProgress() {
+        start(); SystemClock.sleep(300)
+        val before = snapshot()!!.getLong("elapsedMs")
+        instrumentation.runOnMainSync { context.stopService(Intent(context, WorkoutService::class.java)) }
+        waitFor { WorkoutService.current == null }
+        val recovered = db.recoverRuntime()!!
+        assertEquals("interrupted", recovered.getString("status"))
+        assertTrue(recovered.getLong("elapsedMs") >= before)
+        assertEquals(0, db.state().getJSONArray("history").length())
+        assertEquals(0, db.state().getJSONArray("programs").getJSONObject(0).getInt("cursor"))
+        val frozen = recovered.getLong("elapsedMs")
+        SystemClock.sleep(500)
+        assertEquals(frozen, db.recoverRuntime()!!.getLong("elapsedMs"))
+    }
+
+    @Test fun notificationShowsTheActivityAfterASkipRatherThanActiveElapsedPosition() {
+        // A visible-notification assertion requires this explicit fixture permission.
+        // Runtime tests must use a disposable/read-only session; do not revoke it
+        // inside instrumentation because Android can terminate the target process.
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            instrumentation.uiAutomation.grantRuntimePermission(context.packageName, android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+        val steps = JSONArray()
+            .put(JSONObject().put("activity", "warmup").put("seconds", 60))
+            .put(JSONObject().put("activity", "run").put("seconds", 60))
+        val workout = JSONObject().put("intervals", steps).put("seconds", 120).put("week", 1).put("session", 1)
+        db.write("runtime", JSONObject().put("attemptId", "notification-skip").put("programId", "test")
+            .put("index", 0).put("mode", "normal").put("workout", workout).put("elapsedMs", 0).put("status", "paused"))
+        instrumentation.runOnMainSync { context.startForegroundService(Intent(context, WorkoutService::class.java)) }
+        waitFor { snapshot()?.optString("status") == "running" }
+        instrumentation.runOnMainSync { WorkoutService.current!!.skipInterval() }
+        val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        waitFor { manager.activeNotifications.any { it.id == 1 && it.notification.extras.getCharSequence(android.app.Notification.EXTRA_TEXT).toString().startsWith("RUN") } }
+        assertEquals(1, snapshot()!!.getInt("intervalIndex"))
+    }
+
+    @Test fun changingVoiceSettingsAppliesWithoutRestartingTheWorkout() {
+        start(seconds=60, voice=false)
+        val state = db.state()
+        state.getJSONObject("settings").put("voice", true)
+        db.write("state", state)
+        instrumentation.runOnMainSync {
+            WorkoutService.current!!.applySettings()
+            WorkoutService.current!!.skipInterval()
+        }
+        waitFor {
+            var cue: String? = null
+            instrumentation.runOnMainSync { cue = WorkoutService.current?.lastAudioCue() }
+            cue == "modified"
+        }
+        assertEquals("modified", db.read("runtime")!!.getString("status"))
+        assertEquals(0, db.state().getJSONArray("programs").getJSONObject(0).getInt("cursor"))
+    }
+
+    @Test fun coachingReturnsPlaybackToASeparateAudioApp() {
+        data class Event(val state: String, val uid: Int, val focus: Int, val playState: Int)
+        val events = java.util.concurrent.CopyOnWriteArrayList<Event>()
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(c: android.content.Context?, intent: Intent?) {
+                intent ?: return
+                events.add(Event(intent.getStringExtra("state") ?: "", intent.getIntExtra("uid", -1),
+                    intent.getIntExtra("focus", 0), intent.getIntExtra("playState", -1)))
+            }
+        }
+        val filter = android.content.IntentFilter(TestMusicActivity.ACTION)
+        if (android.os.Build.VERSION.SDK_INT >= 33) context.registerReceiver(receiver, filter, android.content.Context.RECEIVER_EXPORTED)
+        else context.registerReceiver(receiver, filter)
+        val component = android.content.ComponentName(instrumentation.context.packageName, TestMusicActivity::class.java.name)
+        try {
+            context.startActivity(Intent().setComponent(component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            waitFor { events.any { it.state == "playing" } }
+            val initial = events.first { it.state == "playing" }
+            assertNotEquals(context.applicationInfo.uid, initial.uid)
+            assertEquals(android.media.AudioTrack.PLAYSTATE_PLAYING, initial.playState)
+            context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            SystemClock.sleep(750)
+            start(voice=true)
+            waitFor { events.any { it.state == "paused" && it.focus == android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK } }
+            waitFor { events.any { it.state == "resumed" && it.playState == android.media.AudioTrack.PLAYSTATE_PLAYING } }
+            assertEquals("running", snapshot()!!.getString("status"))
+        } finally {
+            context.startActivity(Intent(TestMusicActivity.STOP).setComponent(component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            waitFor { events.any { it.state == "stopped" } }
+            context.unregisterReceiver(receiver)
+        }
+    }
+
 }

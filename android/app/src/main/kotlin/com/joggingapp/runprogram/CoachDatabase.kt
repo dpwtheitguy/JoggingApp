@@ -56,26 +56,29 @@ class CoachDatabase(context: Context, name: String = "coach.db") : SQLiteOpenHel
             val state = state()
             val history = state.getJSONArray("history")
             val id = runtime.getString("attemptId")
-            if ((0 until history.length()).none { history.getJSONObject(it).optString("id") == id }) {
-                history.put(JSONObject().put("id", id).put("programId", runtime.getString("programId"))
-                    .put("workout", runtime.getJSONObject("workout")).put("status", status)
-                    .put("elapsedMs", elapsed).put("date", java.time.Instant.now().toString())
-                    .put("mode", runtime.optString("mode", "normal")).put("skippedMs", runtime.optLong("skippedMs")).put("skips", runtime.optJSONArray("skips") ?: JSONArray()))
-                if (status == "completed") {
-                    val programs = state.getJSONArray("programs")
-                    for (i in 0 until programs.length()) {
-                        val p = programs.getJSONObject(i)
-                        if (p.getString("id") == runtime.getString("programId")) {
-                            val index = runtime.getInt("index")
-                            val replay = p.getJSONArray("replay")
-                            val cursor = ProgressPolicy.Cursor(p.getInt("cursor"), (0 until replay.length()).map { replay.getInt(it) })
-                            val updated = ProgressPolicy.complete(cursor, index, runtime.optString("mode", "normal"))
-                            p.put("cursor", updated.next).put("replay", JSONArray(updated.replay))
-                        }
+            // A delayed duplicate must not rewrite a completed result or a newer attempt.
+            if ((0 until history.length()).any { history.getJSONObject(it).optString("id") == id }) {
+                db.setTransactionSuccessful()
+                return
+            }
+            history.put(JSONObject().put("id", id).put("programId", runtime.getString("programId"))
+                .put("workout", runtime.getJSONObject("workout")).put("status", status)
+                .put("elapsedMs", elapsed).put("date", java.time.Instant.now().toString())
+                .put("mode", runtime.optString("mode", "normal")).put("skippedMs", runtime.optLong("skippedMs")).put("skips", runtime.optJSONArray("skips") ?: JSONArray()))
+            if (status == "completed") {
+                val programs = state.getJSONArray("programs")
+                for (i in 0 until programs.length()) {
+                    val p = programs.getJSONObject(i)
+                    if (p.getString("id") == runtime.getString("programId")) {
+                        val index = runtime.getInt("index")
+                        val replay = p.getJSONArray("replay")
+                        val cursor = ProgressPolicy.Cursor(p.getInt("cursor"), (0 until replay.length()).map { replay.getInt(it) })
+                        val updated = ProgressPolicy.complete(cursor, index, runtime.optString("mode", "normal"))
+                        p.put("cursor", updated.next).put("replay", JSONArray(updated.replay))
                     }
                 }
-                write("state", state)
             }
+            write("state", state)
             runtime.put("status", status).put("elapsedMs", elapsed)
             write("runtime", runtime)
             db.setTransactionSuccessful()

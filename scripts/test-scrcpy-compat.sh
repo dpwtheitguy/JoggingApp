@@ -27,6 +27,8 @@ case "${1:-}" in
  --host-audio) emulator_audio_args=(); export PULSE_SERVER="unix:${XDG_RUNTIME_DIR}/pulse/native" ;;
  *) echo 'Usage: bash scripts/test-scrcpy-compat.sh [--audio|--host-audio]'; exit 2 ;;
 esac
+read_only_args=()
+[[ "${RUNPROGRAM_TEST_READ_ONLY:-0}" == 1 ]] && read_only_args=(-read-only)
 pids=()
 ep=''
 cleanup() {
@@ -48,7 +50,7 @@ setsid journalctl --user -f --since now > "$out/desktop.log" 2>&1 & pids+=("$!")
 setsid journalctl -k -f --since now > "$out/kernel.log" 2>&1 & pids+=("$!")
 setsid bash -c 'while :; do date -Is; free -m; ps -eo pid,comm,pcpu,rss --sort=-pcpu | head -12; sleep 5; done' > "$out/resources.log" & pids+=("$!")
 # This deadline is independent of the UI. It cannot guarantee desktop recovery.
-setsid timeout --signal=TERM --kill-after=10s "$((seconds + 120))s" emulator -avd RunProgram_API_36 -port 5580 -no-window "${emulator_audio_args[@]}" -no-boot-anim -no-snapshot -gpu swiftshader -memory 1536 -cores 2 > "$out/emulator.log" 2>&1 & ep=$!; pids+=("$ep")
+setsid timeout --signal=TERM --kill-after=10s "$((seconds + 120))s" emulator -avd RunProgram_API_36 "${read_only_args[@]}" -port 5580 -no-window "${emulator_audio_args[@]}" -no-boot-anim -no-snapshot -gpu swiftshader -memory 2560 -cores 2 > "$out/emulator.log" 2>&1 & ep=$!; pids+=("$ep")
 booted=0
 for n in $(seq 1 35); do
  kill -0 "$ep" 2>/dev/null || { echo 'Emulator exited'; exit 1; }
@@ -65,6 +67,18 @@ activity="${RUNPROGRAM_TEST_ACTIVITY:-.MainActivity}"
 extra=()
 [[ "$activity" == .DebugAudioActivity ]] && extra=(--ez cues true)
 adb -s emulator-5580 shell am start -W -n "com.joggingapp.runprogram/$activity" "${extra[@]}" | tee "$out/launch.log"
+# A guest reboot disconnects scrcpy. Explicit headless checks keep the same
+# bounded emulator alive without auto-restarting a window or virtual device.
+if [[ "${RUNPROGRAM_TEST_HEADLESS_ONLY:-0}" == 1 ]]; then
+ echo "Headless test started for $seconds seconds. Logs: $out"
+ for ((second=0; second<seconds; second++)); do
+  [[ -f "$out/session-complete" ]] && break
+  kill -0 "$ep" 2>/dev/null || { echo 'Emulator exited during headless test.'; exit 1; }
+  sleep 1
+ done
+ timeout 5s adb -s emulator-5580 exec-out screencap -p > "$out/app.png" || true
+ exit 0
+fi
 # Force native Wayland. Do not silently fall back to X11, grab input or use fullscreen.
 setsid env SDL_VIDEODRIVER=wayland SDL_VIDEO_DRIVER=wayland timeout --signal=TERM --kill-after=5s "$((seconds + 10))s" "$mirror" -s emulator-5580 "${audio_args[@]}" --max-size=1280 --max-fps=30 --render-driver=software --time-limit="$seconds" --window-title='RUN PROGRAM development test' --verbosity=debug > "$out/scrcpy.log" 2>&1 & sp=$!; pids+=("$sp")
 echo "Interactive test started for $seconds seconds. Logs: $out"

@@ -40,4 +40,56 @@ class CoachDatabaseTest {
         assertEquals(20000L,db.state().getJSONArray("history").getJSONObject(0).getLong("skippedMs"))
     }
 
+    @Test fun failedRuntimeWriteRollsBackHistoryAndProgressTogether() {
+        db.write("runtime", attempt().put("status", "running").put("elapsedMs", 1000))
+        db.writableDatabase.execSQL("CREATE TEMP TRIGGER reject_runtime BEFORE INSERT ON documents WHEN NEW.name='runtime' BEGIN SELECT RAISE(ABORT, 'simulated storage write failure'); END")
+        try {
+            db.finish(attempt(), "completed", 30000)
+            fail("The simulated write failure should propagate")
+        } catch (_: android.database.sqlite.SQLiteException) {
+            assertEquals(0, db.state().getJSONArray("history").length())
+            assertEquals(0, db.state().getJSONArray("programs").getJSONObject(0).getInt("cursor"))
+            assertEquals("running", db.read("runtime")!!.getString("status"))
+            assertEquals(1000L, db.read("runtime")!!.getLong("elapsedMs"))
+        } finally {
+            db.writableDatabase.execSQL("DROP TRIGGER reject_runtime")
+        }
+    }
+
+    @Test fun conflictingDuplicateFinishCannotChangeACompletedResult() {
+        db.finish(attempt(), "completed", 30000)
+        db.finish(attempt(), "stopped", 1000)
+        assertEquals("completed", db.read("runtime")!!.getString("status"))
+        assertEquals(30000L, db.read("runtime")!!.getLong("elapsedMs"))
+        assertEquals("completed", db.state().getJSONArray("history").getJSONObject(0).getString("status"))
+        assertEquals(1, db.state().getJSONArray("programs").getJSONObject(0).getInt("cursor"))
+    }
+
+    @Test fun duplicateOldFinishCannotOverwriteANewerAttempt() {
+        db.finish(attempt(), "completed", 30000)
+        db.write("runtime", attempt("new").put("status", "paused").put("elapsedMs", 0))
+        db.finish(attempt(), "completed", 30000)
+        assertEquals("new", db.read("runtime")!!.getString("attemptId"))
+        assertEquals("paused", db.read("runtime")!!.getString("status"))
+        assertEquals(1, db.state().getJSONArray("history").length())
+    }
+
+    @Test fun repeatingAWeekConsumesTheQueueAndKeepsAllEarlierAttempts() {
+        db.finish(attempt(), "completed", 30000)
+        val initial = db.state()
+        initial.getJSONArray("programs").getJSONObject(0).put("replay", JSONArray(listOf(0, 1, 2)))
+        db.write("state", initial)
+        for (index in 0..2) {
+            val replay = attempt("replay-$index", "week").put("index", index)
+                .put("workout", JSONObject().put("id", "w1s${index + 1}").put("week", 1).put("session", index + 1))
+            db.finish(replay, "completed", 30000)
+            val state = db.state()
+            val program = state.getJSONArray("programs").getJSONObject(0)
+            assertEquals(maxOf(1, index + 1), program.getInt("cursor"))
+            assertEquals(2 - index, program.getJSONArray("replay").length())
+            assertEquals(index + 2, state.getJSONArray("history").length())
+            assertEquals("a", state.getJSONArray("history").getJSONObject(0).getString("id"))
+        }
+    }
+
 }

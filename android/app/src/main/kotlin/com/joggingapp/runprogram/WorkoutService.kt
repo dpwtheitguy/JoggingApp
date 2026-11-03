@@ -16,6 +16,7 @@ class WorkoutService : Service() {
     private var wake: PowerManager.WakeLock? = null
     private var lastCheckpoint = 0L
     private var lastNotification = -1L
+    private var settings = JSONObject()
     private val noisy = object : BroadcastReceiver() { override fun onReceive(c: Context?, i: Intent?) { pause("Headphones disconnected. Resume when ready.") } }
     override fun onCreate() {
         super.onCreate(); current = this; db = CoachDatabase(this)
@@ -54,7 +55,8 @@ class WorkoutService : Service() {
     }
     fun lastAudioCue(): String? = audio.lastPlayedCue
     fun applySettings() {
-        val prefs = db.state().optJSONObject("settings") ?: JSONObject()
+        settings = db.state().optJSONObject("settings") ?: JSONObject()
+        val prefs = settings
         audio.enabled = prefs.optBoolean("voice", true); audio.duck = prefs.optBoolean("duck", true)
         if (!audio.enabled) audio.stop()
     }
@@ -77,7 +79,8 @@ class WorkoutService : Service() {
     fun resume() {
         val e = engine ?: return
         if (e.status !in setOf("paused", "interrupted")) return
-        val prefs = db.state().optJSONObject("settings") ?: JSONObject()
+        settings = db.state().optJSONObject("settings") ?: JSONObject()
+        val prefs = settings
         audio.enabled = prefs.optBoolean("voice", true); audio.duck = prefs.optBoolean("duck", true)
         payload?.remove("message")
         val cue = e.resume(SystemClock.elapsedRealtime())
@@ -87,17 +90,20 @@ class WorkoutService : Service() {
     }
     fun skipInterval() {
         val e = engine ?: error("Resume the workout before skipping an interval.")
+        check(e.status in setOf("running", "paused")) { "This workout cannot skip another interval." }
         val now = SystemClock.elapsedRealtime()
         val index = e.indexAt(e.position(now))
         val rest = e.remaining(now)
-        val events = payload!!.optJSONArray("skips") ?: org.json.JSONArray()
-        events.put(JSONObject().put("intervalIndex", index).put("skippedMs", rest))
-        payload!!.put("skips", events)
+        if (rest > 0) {
+            val events = payload!!.optJSONArray("skips") ?: org.json.JSONArray()
+            events.put(JSONObject().put("intervalIndex", index).put("skippedMs", rest))
+            payload!!.put("skips", events)
+        }
         audio.stop()
         val cues = e.skip(now)
-        checkpoint()
         if (e.status == "completed") { finishSequence(cues); return }
-        else if (e.status == "running") audio.say(cues)
+        checkpoint()
+        if (e.status == "running") audio.say(cues)
         notifyPlayer()
     }
     private fun finishSequence(cues: List<String>) {
@@ -120,7 +126,7 @@ class WorkoutService : Service() {
             val e = engine ?: return
             if (e.status != "running") return
             val now = SystemClock.elapsedRealtime()
-            val prefs = db.state().optJSONObject("settings") ?: JSONObject()
+            val prefs = settings
             audio.enabled = prefs.optBoolean("voice", true); audio.duck = prefs.optBoolean("duck", true)
             val cues = e.advance(now, prefs.optBoolean("halfway", true), prefs.optBoolean("warning", true))
             if (e.status == "completed") {
@@ -145,7 +151,7 @@ class WorkoutService : Service() {
         val e = engine
         val now = SystemClock.elapsedRealtime()
         val remaining = ((e?.remaining(now) ?: 0) + 999) / 1000
-        val activity = e?.let { it.intervals[it.indexAt(it.elapsed(now))].activity.uppercase() } ?: "READY"
+        val activity = e?.let { it.intervals[it.indexAt(it.position(now))].activity.uppercase() } ?: "READY"
         val pause = e?.status == "running"
         val control = PendingIntent.getService(this, if (pause) 1 else 2, Intent(this, WorkoutService::class.java).setAction(if (pause) "pause" else "resume"), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         return Notification.Builder(this, "workout").setSmallIcon(R.drawable.ic_runprogram)
@@ -157,7 +163,13 @@ class WorkoutService : Service() {
     }
     private fun notifyPlayer() { getSystemService(NotificationManager::class.java).notify(1, notification()) }
     override fun onDestroy() {
-        if (engine?.status == "running") { engine?.pause(SystemClock.elapsedRealtime()); payload?.put("status", "interrupted"); checkpoint() }
+        if (engine?.status == "running") {
+            engine?.pause(SystemClock.elapsedRealtime())
+            snapshot()?.let {
+                it.put("status", "interrupted").put("message", "Coaching was interrupted. Resume from the saved checkpoint; downtime is not counted.")
+                db.write("runtime", it)
+            }
+        }
         handler.removeCallbacksAndMessages(null); audio.stop(); releaseWake(); unregisterReceiver(noisy)
         current = null; db.close(); super.onDestroy()
     }

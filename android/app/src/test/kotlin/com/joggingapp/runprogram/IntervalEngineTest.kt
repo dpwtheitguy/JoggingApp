@@ -63,4 +63,13 @@ class IntervalEngineTest {
         assertEquals(10000L,e.elapsed(999999));assertEquals(60000L,e.remaining(999999));e.resume(1000000);assertEquals(59000L,e.remaining(1001000))
     }
 
+    @Test fun skippingAtTheExactFinishDoesNotInventSkippedTimeOrAModifiedCue() {
+        val e = IntervalEngine(listOf(IntervalEngine.Step("run", 60)))
+        e.resume(0)
+        assertEquals(listOf("complete"), e.skip(60000))
+        assertEquals(0L, e.skippedMs)
+        assertEquals(60000L, e.elapsed(90000))
+        assertEquals("completed", e.status)
+    }
+
 }

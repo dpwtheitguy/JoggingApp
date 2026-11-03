@@ -190,7 +190,8 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
       );
     },
   );
-  Widget page(List<Widget> children) => ListView(
+  Widget page(List<Widget> children, {Key? key}) => ListView(
+    key: key,
     padding: const EdgeInsets.all(24),
     children: children.expand((w) => [w, const SizedBox(height: 16)]).toList(),
   );
@@ -326,7 +327,7 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
         const Text(
           'Long-distance development curriculum: route distance and supporting activity matter. Timed completion alone cannot establish race readiness. Templates await independent coach review.',
         ),
-    ]);
+    ], key: PageStorageKey('dashboard-${p['id']}'));
   }
 
   Widget programView(Map<String, dynamic> p) {
@@ -340,6 +341,11 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
           key: PageStorageKey('${p['id']}-week-$week'),
           initiallyExpanded: week == currentWeek,
           title: Text('Week ${week + 1} of ${p['weeks']}'),
+          subtitle: p['paused'] == true && week == currentWeek
+              ? const Text(
+                  'Training paused. Resume from Home to start a workout.',
+                )
+              : null,
           children: [
             for (var day = 0; day < 3 && week * 3 + day < all.length; day++)
               Padding(
@@ -353,16 +359,22 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 8),
                     workoutBreakdown(all[week * 3 + day] as Map),
-                    if (week * 3 + day <= (p['cursor'] as int) ||
+                    if (week * 3 + day < (p['cursor'] as int) ||
                         week * 3 + day == nextIndex(p))
                       OutlinedButton(
-                        onPressed: () => start(
-                          p,
-                          week * 3 + day,
-                          mode: week * 3 + day < (p['cursor'] as int)
-                              ? 'repeat'
-                              : null,
-                        ),
+                        onPressed: p['paused'] == true || store.busy
+                            ? null
+                            : () => start(
+                                p,
+                                week * 3 + day,
+                                mode:
+                                    week * 3 + day == nextIndex(p) &&
+                                        (p['replay'] as List).isNotEmpty
+                                    ? 'week'
+                                    : week * 3 + day < (p['cursor'] as int)
+                                    ? 'repeat'
+                                    : null,
+                              ),
                         child: Text(
                           week * 3 + day < (p['cursor'] as int)
                               ? 'Repeat Day ${day + 1}'
@@ -432,7 +444,7 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
       const Text(
         'Privacy: no account, GPS, analytics, or cloud backup. History lives on this device; uninstalling or losing the device can lose it.',
       ),
-    ]);
+    ], key: const PageStorageKey('settings'));
   }
 
   Widget player(Map<String, dynamic> r) {
@@ -634,7 +646,7 @@ class _CoachScreenState extends State<CoachScreen> with WidgetsBindingObserver {
       ],
       title('Week ${w['week']} · Day ${w['session']} · Full workout'),
       workoutBreakdown(w),
-    ]);
+    ], key: ValueKey('player-${r['attemptId']}-${terminal ? 'result' : 'active'}'));
   }
 }
 

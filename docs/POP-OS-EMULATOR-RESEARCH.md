@@ -89,3 +89,25 @@ To reproduce only when authorized: `RUNPROGRAM_TEST_ACTIVITY=.DebugAudioActivity
 User confirmed actual voice cues audible and desktop stable in the audio lab. Logcat recorded the real CoachAudio sequence (warmup, resume_warmup, run, walk, halfway, minute, cooldown, resume_cooldown, complete, modified). Added local RunProgramAudio cue start/completion/focus/error logs, individual replay buttons and Play all coaching cues. Lab layout scrolls and accounts for the bottom system inset.
 
 New user-invoked scripts/dev-android.sh builds the current debug APK and opens either app or audio lab through the pinned native-Wayland scrcpy setup. Default duration is 120 seconds; explicit sessions can select 30–1200 seconds. The harness preserves logs, checks duplicate sessions, propagates scrcpy failure status and stops helper process groups. No standalone emulator window or desktop configuration change is involved.
+
+Later audit clarification: the API 36 emulator log reports increasing earlier
+1536 MB RAM requests to 2560 MB. Prior test descriptions record the requested
+value, not a proven 1536 MB allocation. The launcher now explicitly requests
+2560 MB; total process RSS can exceed guest RAM due to graphics/emulator overhead.
+
+
+## Bounded regression and soak follow-up
+
+With explicit user authorization, read-only headless SwiftShader sessions passed
+23 native regressions and a separate 15-minute locked-screen timing soak. Native
+Wayland scrcpy was used where audio/UI presentation was needed; guest reboot and
+upgrade checks ran headless within the same bounded harness. Emulator shutdown
+was enforced after the tests. No host driver/display setting changed. See
+VALIDATION.md for exact app evidence. These successful bounded observations do not
+establish a root cause or universal host stability, and do not relax AGENTS.md.
+
+For explicitly authorized guest-reboot checks only,
+RUNPROGRAM_TEST_HEADLESS_ONLY=1 keeps the bounded headless session alive across
+ADB reconnection without automatically restarting scrcpy. A session-complete file
+in the emitted diagnostics directory requests early cleanup. The independent
+emulator deadline still applies. Routine checks never invoke this harness.

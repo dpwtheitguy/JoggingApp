@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runprogram/src/training/plan.dart';
 
@@ -151,6 +153,39 @@ void main() {
         isTrue,
       );
       expect(PlanGenerator.concern(const PlanRequest(weeks: 104)), isNull);
+    },
+  );
+  test(
+    'maximum custom timelines remain serializable and within native limits',
+    () {
+      for (final goal in RunningGoal.values) {
+        final plan = PlanGenerator.generate(
+          PlanRequest(
+            goal: goal,
+            ability: goal == RunningGoal.fiveK || goal == RunningGoal.tenK
+                ? Ability.beginner
+                : Ability.experienced,
+            weeks: 999,
+            baseReady: true,
+            supportReady: true,
+          ),
+        );
+        expect(plan.workouts.length, 2997);
+        expect(
+          (jsonDecode(jsonEncode(plan.toJson('max'))) as Map)['version'],
+          2,
+        );
+        for (final workout in plan.workouts) {
+          final steps = workout['intervals'] as List;
+          expect(steps.length, inInclusiveRange(1, 200));
+          expect(workout['seconds'], lessThanOrEqualTo(21600));
+          expect(
+            workout['seconds'],
+            steps.fold<int>(0, (sum, step) => sum + step['seconds'] as int),
+          );
+        }
+      }
+      expect(PlanGenerator.concern(const PlanRequest(weeks: 1000)), isNotNull);
     },
   );
 }

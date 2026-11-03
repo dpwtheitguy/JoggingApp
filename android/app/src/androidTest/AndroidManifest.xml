@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Test APK only: separate UID to verify another app's audio focus. -->
+        <activity android:name="com.joggingapp.runprogram.TestMusicActivity"
+            android:exported="true" android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar"/>
+    </application>
+</manifest>
