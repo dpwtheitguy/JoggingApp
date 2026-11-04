@@ -1,0 +1,79 @@
+{
+  "engine": "Kokoro-82M v1.0",
+  "generator": "kokoro-onnx",
+  "generatorVersion": "0.6.1",
+  "voice": "af_heart",
+  "speed": 0.96,
+  "language": "en-us",
+  "modelHashes": {
+    "kokoro-v1.0.onnx": "beb0d1848dee9a49da392cc3df26958d46cfa35d321edf434f52949153f0df3a",
+    "voices-v1.0.bin": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d"
+  },
+  "sampleRate": 24000,
+  "encoding": "mono PCM16",
+  "peakDbFS": -1.5,
+  "leadingPadMs": 80,
+  "trailingPadMs": 120,
+  "cues": {
+    "warmup": {
+      "text": "Begin your five-minute warm-up.",
+      "file": "cue_warmup.wav",
+      "seconds": 1.7478,
+      "sha256": "8a6343755db620e97b24ddd320f11234de226e450935f28c9bb565c0dee3e1fe"
+    },
+    "resume_warmup": {
+      "text": "Resume walking for your warm-up.",
+      "file": "cue_resume_warmup.wav",
+      "seconds": 2.0479,
+      "sha256": "200098569172b96e959bf538a4fe22b62060c1db71757cff493f7668b21d1b6a"
+    },
+    "resume_cooldown": {
+      "text": "Resume walking for your cooldown.",
+      "file": "cue_resume_cooldown.wav",
+      "seconds": 2.0915,
+      "sha256": "9e295ebca58f6d4ccf1ce84074950672a68e513f18f6e6933217005bb67fc67e"
+    },
+    "run": {
+      "text": "Start running.",
+      "file": "cue_run.wav",
+      "seconds": 0.98,
+      "sha256": "403f9e956c88f61ff15b3df5468bef92cd606c01fcf6578644afdd3de156e206"
+    },
+    "walk": {
+      "text": "Stop running. Start walking.",
+      "file": "cue_walk.wav",
+      "seconds": 2.0443,
+      "sha256": "533a4fd9f24cf733ffe5d3eb30df12e259bfead200bde22b2a8f97159623eaea"
+    },
+    "halfway": {
+      "text": "You’re halfway there.",
+      "file": "cue_halfway.wav",
+      "seconds": 1.1621,
+      "sha256": "4bdd79e19eea3d6cbd5f0a1c66281a28d9795ed301823124fa92dbaeca4decf1"
+    },
+    "minute": {
+      "text": "One minute left in this workout.",
+      "file": "cue_minute.wav",
+      "seconds": 1.7973,
+      "sha256": "8fd5c82f2af7d4917ce3c6b2b3efbda2b0dbfa15e2d6983adfb598f545d4db41"
+    },
+    "cooldown": {
+      "text": "Begin your five-minute cooldown.",
+      "file": "cue_cooldown.wav",
+      "seconds": 1.7921,
+      "sha256": "869e566f34e81cd412bd368fe8f3145888b0159746df5f3d563489851dcb075f"
+    },
+    "complete": {
+      "text": "Workout complete.",
+      "file": "cue_complete.wav",
+      "seconds": 1.2481,
+      "sha256": "3d58cf61ab027dd6fb4e5104ea92bbf4a0d5ba2891d05b30ff9f4b37170db52a"
+    },
+    "modified": {
+      "text": "Workout finished. Some intervals were skipped.",
+      "file": "cue_modified.wav",
+      "seconds": 2.6768,
+      "sha256": "82dc852ca31e4e5cd785633a284418a79f084b749e0ba591b9071d5b63786983"
+    }
+  }
+}

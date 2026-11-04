@@ -1,8 +1,8 @@
 # MVP requirements and acceptance ledger
 
 This is the completion ledger for the user's app goal. Passing software checks
-is distinct from physical-device validation and permission to publish. The voice
-upgrade is explicitly deferred by the user; current clips remain placeholders.
+is distinct from physical-device validation and permission to publish. The user selected Kokoro Heart on November 3, 2026; all ten robotic
+placeholder clips are replaced with bundled neural speech.
 
 | Requirement | Implementation / current evidence | Remaining verification |
 |---|---|---|
@@ -13,7 +13,7 @@ upgrade is explicitly deferred by the user; current clips remain placeholders.
 | Timer and skip | Monotonic native foreground engine; separate active/skipped time; unit tests | Native instrumented engine/service/database regressions passed |
 | Pause/resume/confirmed stop | Native service, immediate UI pause/resume, explicit stop, saved incomplete attempt | Native service regressions and actual control smoke passed |
 | Background and locked screen | Partial wake lock while running, service notification, checkpoints | 15-minute locked-screen real-time soak passed; physical battery-saver/extended sessions remain |
-| Offline audio | Ten bundled cues; audible via Wayland scrcpy confirmed; media audio focus and local logs | Separate-UID playback/focus suite passed; physical music/podcast/headset/call matrix remains; voice quality deferred |
+| Offline audio | Ten bundled cues; audible via Wayland scrcpy confirmed; media audio focus and local logs | Separate-UID playback/focus suite passed; physical music/podcast/headset/call matrix remains; Heart selected by user; replacement evidence in VALIDATION.md |
 | Honest recovery | No invented elapsed downtime; interrupted checkpoint on destruction/reopen | Interruption regression and actual force-stop/reopen passed; actual guest reboot also retained the exact checkpoint |
 | Completion and repeats | Atomic/idempotent progress; repeat queue; explicit modified completion; native start policy | Atomic completion/duplicate/replay and skipped notification regressions passed |
 | Local history | Original stored prescriptions, statuses, dates, repeat contexts, skipped intervals; lazy 3,000-row widget test | Actual history-row navigation and prescription detail passed |
@@ -51,3 +51,6 @@ so denying it does not cause a new prompt on every workout start. The service
 still starts from the explicit workout action. Actual notification denial allowed workouts, kept progression unchanged after early
 stop, and did not repeat the permission prompt. Physical-device re-enable UX remains
 a release check.
+
+Voice acceptance completed: the user selected Heart, heard every replacement cue
+in the Android audio lab and approved it. See the v0.5.1 entry in VALIDATION.md.

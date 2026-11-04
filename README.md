@@ -2,7 +2,7 @@
 
 An offline-first Android running coach with a dark terminal-inspired interface. Application ID: `com.joggingapp.runprogram`. Minimum Android: 8.0 / API 26; target SDK: 36.
 
-## Functional development MVP · v0.5.0
+## Functional development MVP · v0.5.1
 
 - Default 5K setup in two actions through workout start; returning users start from Home in one action.
 - Flexible timelines including 60-week 5K plans, custom week entry, and a gentler 21-stage run/walk ladder for longer beginner programs.
@@ -11,7 +11,7 @@ An offline-first Android running coach with a dark terminal-inspired interface. 
 - Goal/ability/timeline selection, with prerequisite checks and conservative redirects for longer-distance goals.
 - Structured walk/run, easy, long, recovery, and taper sessions.
 - Native Android foreground-service timer, monotonic elapsed time, pause/resume, confirmed early stop, and conservative interrupted-process recovery.
-- Bundled offline voice coaching, transient audio focus/ducking requests, optional vibration, and a mute control.
+- Bundled offline Kokoro Heart neural voice coaching, transient audio focus/ducking requests, optional vibration, and a mute control.
 - SQLite progress, completion history, repeated workouts/weeks, program pause/restart, and optional self-reported distance.
 - Tap any history entry to review its original full prescription, actual exercise time and individual skipped intervals, including previous programs.
 - Central dark/green theme and optional low-intensity rain, disabled during workouts and reduced-motion mode.
@@ -77,5 +77,7 @@ See [verification record](docs/VALIDATION.md) for actual results and remaining d
 Development acceptance: **94 passing tests**, clean static analysis, optimized
 APK/AAB builds, locked-screen soak and data-preserving development upgrade.
 See [acceptance ledger](docs/ACCEPTANCE.md) and [executed validation](docs/VALIDATION.md).
-Physical-device release validation, production signing/store approval and the
-agreed voice replacement remain separate release work.
+Physical-device release validation and production signing/store approval remain separate release work.
+
+Voice update: all ten cues now use user-approved Kokoro Heart neural speech,
+bundled for offline playback. See [voice provenance](docs/VOICE-DIRECTION.md).

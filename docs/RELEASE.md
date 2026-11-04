@@ -28,7 +28,7 @@ flutter build appbundle --release
 
 Sideloading artifact: build/app/outputs/flutter-apk/app-release.apk. Play upload artifact: build/app/outputs/bundle/release/app-release.aab. Verify APK signer/certificate with the installed build-tools apksigner, and verify bundle signing with jarsigner. Match the intended certificate fingerprint; successful compilation alone does not prove correct production signing. Test clean installation and upgrades using the same certificate. Debug and production packages with the same application ID but different certificates cannot upgrade each other.
 
-Version is controlled by pubspec.yaml (currently 0.5.0+5). Increment the build number for every uploaded Play build; never reuse it. Keep lockfiles and Gradle wrapper in version control.
+Version is controlled by pubspec.yaml (currently 0.5.1+6). Increment the build number for every uploaded Play build; never reuse it. Keep lockfiles and Gradle wrapper in version control.
 
 ## Permissions and execution
 
@@ -44,7 +44,7 @@ Target API 36 is the required new-app baseline rechecked against the official Pl
 
 ## Privacy disclosure draft
 
-RUN//PROGRAM works offline without an account. It stores selected programs, settings, workout attempts and optional self-reported distance in app-private SQLite. The app has no analytics, advertising, location collection or cloud service. Bundled synthetic English voice clips are included locally; no speech service receives workout data. Android backup/transfer exclusions are explicit, with allowBackup=false; verify manufacturer behavior. Uninstalling, resetting or losing the device can lose history. No export/sync feature is included in this MVP.
+RUN//PROGRAM works offline without an account. It stores selected programs, settings, workout attempts and optional self-reported distance in app-private SQLite. The app has no analytics, advertising, location collection or cloud service. Bundled Kokoro Heart neural English voice clips are included locally; no speech service receives workout data. Android backup/transfer exclusions are explicit, with allowBackup=false; verify manufacturer behavior. Uninstalling, resetting or losing the device can lose history. No export/sync feature is included in this MVP.
 
 Before publication, provide a publisher/contact identity, host an accurate privacy policy, review every shipped dependency, complete Data Safety and applicable health-app declarations, content rating, and foreground-service forms/demo evidence. This draft is not a published policy URL or a claim of completed Play review.
 

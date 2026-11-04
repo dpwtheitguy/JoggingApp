@@ -201,3 +201,35 @@ release tasks without production configuration or the explicit development opt-i
 Every bounded emulator session was stopped; no emulator was intentionally left
 running. Host observations during these sessions do not prove the original COSMIC
 issue is fixed, so the AGENTS.md restriction remains in force.
+
+
+## v0.5.1: approved neural coaching voice
+
+On November 3, 2026 the user selected Kokoro `af_heart` from three stock voice
+samples, then heard all ten replacement clips in the updated Android audio lab
+through the already-authorized native-Wayland scrcpy session and answered
+**“Yes, use this voice.”** All ten eSpeak WAVs are replaced. No actor voice clone
+or Cortana recording is used. Generation is local CPU-only; Android bundles only
+finished audio and remains offline with no new runtime dependency or permission.
+
+Executed checks for this audio-only update:
+
+- Debug APK, development-signed optimized APK and AAB builds passed for 0.5.1+6.
+- Static analysis passed. Python generators/checker compile and git whitespace
+  checks passed. The previous 94-test reliability suite was not rerun for WAV-only
+  runtime changes; its results remain the v0.5 acceptance evidence above.
+- Each of the ten files is non-silent mono 24 kHz PCM16, 0.98–2.68 seconds long,
+  peak -1.5 dBFS without clipping, with bounded leading/trailing silence. The asset
+  checker validates exact cue membership, provenance hashes and byte-for-byte
+  retention in both debug and optimized APKs.
+- Android RunProgramAudio logs show every new cue started and finished without
+  playback errors. The user confirmed clarity and accepted this voice in the app.
+- Published model/embedding SHA-256 digests matched downloaded files. Model/tool
+  source URLs, licenses and regeneration settings are in VOICE-DIRECTION.md;
+  exact per-cue text/duration/hash is in audio/coaching-manifest.json.
+- The compatibility session was deliberately closed after listening; no test
+  emulator was intentionally left running.
+
+Local detailed output is retained in .local-tools/voice/{build.log,bundle.log,
+analysis.log,debug-assets.log,android-playback.log}. Physical headset, call,
+music/podcast interoperability and battery checks remain the existing release gates.
